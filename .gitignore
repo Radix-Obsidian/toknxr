@@ -43,3 +43,8 @@ next-env.d.ts
 # firebase admin sdk credentials
 /config/
 .env.local
+
+# Firebase
+*-debug.log
+apphosting.emulator.yaml
+.dataconnect/
