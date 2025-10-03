@@ -1,0 +1,42 @@
+mutation CreateNewProject($name: String!, $organizationId: UUID!, $description: String) @auth(level: USER) {
+  project_insert(data: {
+    name: $name,
+    organizationId: $organizationId,
+    description: $description
+  })
+}
+
+query ListProjectsForOrganization($organizationId: UUID!) @auth(level: USER) {
+  projects(where: { organizationId: { eq: $organizationId } }) {
+    id
+    name
+    description
+    createdAt
+  }
+}
+
+mutation CreateNewAlert($projectId: UUID!, $userId: UUID!, $name: String!, $description: String, $period: String!, $status: String!, $threshold: Int!, $unit: String!) @auth(level: USER) {
+  alert_insert(data: {
+    projectId: $projectId,
+    userId: $userId,
+    name: $name,
+    description: $description,
+    period: $period,
+    status: $status,
+    threshold: $threshold,
+    unit: $unit
+  })
+}
+
+query ListAlertsForProject($projectId: UUID!) @auth(level: USER) {
+  alerts(where: { projectId: { eq: $projectId } }) {
+    id
+    name
+    description
+    period
+    status
+    threshold
+    unit
+    triggeredAt
+  }
+}

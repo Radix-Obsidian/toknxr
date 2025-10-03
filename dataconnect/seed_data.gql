@@ -1,0 +1,65 @@
+mutation SeedDatabase @auth(level: USER) {
+  organization_upsertMany(data: [
+    {
+      id: "550e8400-e29b-41d4-a716-446655440000",
+      name: "Example Organization",
+      contactEmail: "contact@example.com",
+      createdAt: "2024-01-01T00:00:00Z"
+    }
+  ])
+  user_upsertMany(data: [
+    {
+      id: "650e8400-e29b-41d4-a716-446655440001",
+      organizationId: "550e8400-e29b-41d4-a716-446655440000",
+      displayName: "Example User",
+      email: "user@example.com",
+      createdAt: "2024-01-01T00:00:00Z"
+    }
+  ])
+  project_upsertMany(data: [
+    {
+      id: "750e8400-e29b-41d4-a716-446655440002",
+      organizationId: "550e8400-e29b-41d4-a716-446655440000",
+      ownerUserId: "650e8400-e29b-41d4-a716-446655440001",
+      name: "Example Project",
+      description: "A sample project",
+      createdAt: "2024-01-01T00:00:00Z"
+    }
+  ])
+  aIService_upsertMany(data: [
+    {
+      id: "850e8400-e29b-41d4-a716-446655440003",
+      name: "Example AI Service",
+      provider: "Example",
+      apiUrl: "https://example.com/api",
+      tokenCostPerUnit: 0.01,
+      unitType: "tokens"
+    }
+  ])
+  tokenUsage_upsertMany(data: [
+    {
+      id: "950e8400-e29b-41d4-a716-446655440004",
+      projectId: "750e8400-e29b-41d4-a716-446655440002",
+      aiServiceId: "850e8400-e29b-41d4-a716-446655440003",
+      tokensUsed: 100,
+      costInCents: 1,
+      timestamp: "2024-01-01T00:00:00Z"
+      requestDetails: "{}",
+      responseDetails: "{}"
+    }
+  ])
+  alert_upsertMany(data: [
+    {
+      id: "a50e8400-e29b-41d4-a716-446655440005",
+      projectId: "750e8400-e29b-41d4-a716-446655440002",
+      userId: "650e8400-e29b-41d4-a716-446655440001",
+      name: "Example Alert",
+      description: "A sample alert",
+      period: "daily",
+      threshold: 1000,
+      unit: "tokens",
+      status: "active",
+      createdAt: "2024-01-01T00:00:00Z"
+    }
+  ])
+}
