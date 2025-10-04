@@ -8,6 +8,9 @@
  */
 
 import {setGlobalOptions} from "firebase-functions";
+import * as admin from "firebase-admin";
+
+admin.initializeApp();
 
 // Start writing functions
 // https://firebase.google.com/docs/functions/typescript
@@ -28,3 +31,5 @@ setGlobalOptions({ maxInstances: 10 });
 //   logger.info("Hello logs!", {structuredData: true});
 //   response.send("Hello from Firebase!");
 // });
+
+export * from "./trackInteraction";

@@ -3,6 +3,8 @@ import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getAuth, connectAuthEmulator } from "firebase/auth";
 import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
+import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
+import { getStorage, connectStorageEmulator } from "firebase/storage";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -21,6 +23,8 @@ const app = initializeApp(firebaseConfig);
 // Initialize Firebase services
 const auth = getAuth(app);
 const db = getFirestore(app);
+const functions = getFunctions(app);
+const storage = getStorage(app);
 
 // Initialize analytics only on client side
 let analytics: any = null;
@@ -33,9 +37,11 @@ if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
   try {
     connectAuthEmulator(auth, "http://localhost:9099");
     connectFirestoreEmulator(db, 'localhost', 8080);
+    connectFunctionsEmulator(functions, "localhost", 5001);
+    connectStorageEmulator(storage, "localhost", 9199);
   } catch (error) {
     // Emulators already connected
   }
 }
 
-export { app, auth, db, analytics };
+export { app, auth, db, functions, storage, analytics };
