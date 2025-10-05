@@ -5,7 +5,8 @@
   "main": "lib/cli.js",
   "type": "module",
   "scripts": {
-    "start": "tsx src/cli.ts",
+    "start": "tsx src/cli.ts start",
+    "cli": "tsx src/cli.ts",
     "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -24,5 +25,11 @@
     "ora": "^9.0.0",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@types/keytar": "^4.4.0",
+    "firebase": "^12.3.0",
+    "keytar": "^7.9.0",
+    "open": "^10.2.0"
   }
 }

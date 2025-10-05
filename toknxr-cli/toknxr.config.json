@@ -1,0 +1,39 @@
+{
+  "providers": [
+    {
+      "name": "Ollama-Llama3",
+      "routePrefix": "/ollama",
+      "targetUrl": "http://localhost:11434/api/chat",
+      "apiKeyEnvVar": null,
+      "tokenMapping": {
+        "prompt": "prompt_eval_count",
+        "completion": "eval_count"
+      }
+    },
+    {
+      "name": "Gemini-Pro",
+      "routePrefix": "/gemini",
+      "targetUrl": "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent",
+      "apiKeyEnvVar": "GEMINI_API_KEY",
+      "authHeader": "x-goog-api-key",
+      "tokenMapping": {
+        "prompt": "usageMetadata.promptTokenCount",
+        "completion": "usageMetadata.candidatesTokenCount",
+        "total": "usageMetadata.totalTokenCount"
+      }
+    },
+    {
+      "name": "OpenAI-GPT4",
+      "routePrefix": "/openai",
+      "targetUrl": "https://api.openai.com/v1/chat/completions",
+      "apiKeyEnvVar": "OPENAI_API_KEY",
+      "authHeader": "Authorization",
+      "authScheme": "Bearer",
+      "tokenMapping": {
+        "prompt": "usage.prompt_tokens",
+        "completion": "usage.completion_tokens",
+        "total": "usage.total_tokens"
+      }
+    }
+  ]
+}
