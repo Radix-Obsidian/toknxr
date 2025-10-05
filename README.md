@@ -1,6 +1,10 @@
-# TokNxr - AI Token Usage Tracking System
+# TokNxr - AI Effectiveness & Code Quality Analysis System
 
-A serverless, full-stack application for tracking AI token usage across organizations and projects.
+A comprehensive serverless platform for tracking AI token usage AND measuring the actual effectiveness and quality of AI-generated code. TokNxr goes beyond simple cost tracking to help developers understand "what you got for what you paid" in terms of software development outcomes.
+
+**🚀 Transformations:**
+- **Before**: "How much did AI cost?" → Cost tracking only
+- **Now**: "What quality code did I get for the cost?" → Effectiveness & ROI analysis
 
 ## 🏗️ Architecture
 
@@ -122,7 +126,74 @@ To see a summary of your token usage, run the `stats` command:
 npm run cli --prefix toknxr-cli -- stats
 ```
 
+### 🎯 AI Code Quality Analysis (NEW!)
+
+TokNxr goes beyond token tracking to analyze the **actual effectiveness** of AI-generated code. When you send coding requests through the proxy, it automatically analyzes:
+
+#### **What It Measures:**
+- **Code Quality Score** (0-100): Syntax validity, readability, structure
+- **Effectiveness Score** (0-100): How well AI understood and fulfilled your prompt
+- **Prompt Clarity Match**: How well keywords from your request appeared in code
+- **Code Completeness**: Whether the solution appears fully implemented
+- **Syntax Validation**: Basic language-specific syntax checking
+- **Readability Assessment**: Code formatting and structure evaluation
+
+#### **New CLI Commands:**
+
+**Enhanced Stats with Code Quality:**
+```bash
+npm run cli --prefix toknxr-cli -- stats
+# Shows: token costs + code quality averages + effectiveness scores
+```
+
+**Deep Code Analysis Insights:**
+```bash
+npm run cli --prefix toknxr-cli -- code-analysis
+# Detailed language distribution + quality ranges + recommendations
+```
+
+#### **Supported Languages:**
+- **JavaScript & TypeScript**: Full syntax validation, camelCase naming, JSDoc support
+- **Python**: Indentation checking, docstring detection, underscore conventions
+- **Extensible**: Easy to add more languages (Go, Rust, etc.)
+
+#### **Example Analysis Output:**
+
+```bash
+🎯 Effectiveness Scores (Prompt ↔ Result):
+    Excellent (90-100): 3    # Perfect prompt understanding
+    Good (75-89): 8          # Good, but some room for improvement
+    Fair (60-74): 5          # Works, but could be better
+    Poor (0-59): 1           # Prompt needs clarification
+
+💡 Improvement Suggestions:
+  • Your prompts work well for basic functions
+  • Try more specific error handling requirements
+  • Consider adding performance constraints in prompts
+```
+
+#### **Real-Time Analysis:**
+- Every coding request is automatically analyzed
+- Results stored with complete interaction logs
+- Compare different AI models on the same prompts
+- Track improvement over time
+
+#### **Free Models Optimized:**
+Works with all configured providers:
+- **Ollama** (LOCAL): $0 cost analysis
+- **Gemini Free Tier**: Limits up to cost ceilings
+- **OpenAI**: Compare cost vs quality trade-offs
+
+#### **Data-Driven Decisions:**
+Finally answer questions like:
+- "Does GPT-4 actually give better code than GPT-3.5?"
+- "Are my prompts effective, or do I need to improve them?"
+- "Which model gives the best code quality per dollar?"
+- "Should I use local models vs cloud APIs?"
+
 ---
+
+## 🤖 Core Features
 
 ### Development
 
