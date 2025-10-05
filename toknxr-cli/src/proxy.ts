@@ -30,14 +30,38 @@ interface AIInteraction {
 }
 
 // Helper to resolve dot notation paths
-const getValueFromPath = (obj: any, path: string) => {
-  if (!path) return 0;
-  return path.split('.').reduce((res, prop) => res && res[prop], obj) || 0;
+const getValueFromPath = (obj: unknown, path: string): number => {
+  if (!path || !obj) return 0;
+  try {
+    const result = path.split('.').reduce((res: unknown, prop: string) =>
+      res && typeof res === 'object' && prop in res ? (res as Record<string, unknown>)[prop] : undefined,
+      obj
+    );
+    return Number(result) || 0;
+  } catch {
+    return 0;
+  }
 };
+
+interface ProviderConfig {
+  providers: Array<{
+    name: string;
+    routePrefix: string;
+    targetUrl: string;
+    apiKeyEnvVar: string;
+    authHeader: string;
+    authScheme?: string;
+    tokenMapping: {
+      prompt: string;
+      completion: string;
+      total: string;
+    };
+  }>;
+}
 
 export const startProxyServer = async () => {
   // --- Load Provider Config ---
-  let providerConfig;
+  let providerConfig: ProviderConfig;
   const configPath = path.resolve(process.cwd(), 'toknxr.config.json');
   if (!fs.existsSync(configPath)) {
       console.error(chalk.red(`[Proxy] Error: 'toknxr.config.json' not found in the current directory.`));
@@ -72,35 +96,114 @@ export const startProxyServer = async () => {
       return;
     }
 
-    // Minimal stats API (current month aggregates)
+    // Enhanced stats API for dashboard
     if (req.method === 'GET' && req.url === '/api/stats') {
       const logFilePath = path.resolve(process.cwd(), 'interactions.log');
       const monthKey = currentMonthKey();
       const sums = computeMonthlySpend(logFilePath, monthKey);
+
+      // Read recent interactions for the dashboard
+      interface RecentInteraction {
+        timestamp: string;
+        provider: string;
+        model: string;
+        cost: number;
+        taskType?: string;
+        qualityScore?: number;
+        effectivenessScore?: number;
+      }
+
+      let recentInteractions: RecentInteraction[] = [];
+      if (fs.existsSync(logFilePath)) {
+        try {
+          const fileContent = fs.readFileSync(logFilePath, 'utf8');
+          const lines = fileContent.trim().split('\n');
+          recentInteractions = lines.slice(-20) // Last 20 interactions
+            .map(line => JSON.parse(line))
+            .map((interaction: unknown) => ({
+              timestamp: (interaction as { timestamp: string }).timestamp,
+              provider: (interaction as { provider: string }).provider,
+              model: (interaction as { model: string }).model,
+              cost: (interaction as { costUSD: number }).costUSD || 0,
+              taskType: (interaction as { taskType?: string }).taskType,
+              qualityScore: (interaction as { codeQualityScore?: number }).codeQualityScore,
+              effectivenessScore: (interaction as { effectivenessScore?: number }).effectivenessScore
+            }))
+            .reverse(); // Most recent first
+        } catch (error) {
+          console.error('Error reading recent interactions:', error);
+        }
+      }
+
+      // Calculate waste rate based on quality scores
+      const codingInteractions = recentInteractions.filter(i => i.taskType === 'coding');
+      const wasteRate = codingInteractions.length > 0
+        ? (codingInteractions.filter(i => (i.qualityScore || 0) < 70).length / codingInteractions.length) * 100
+        : 0;
+
+      // Count total interactions from recent interactions for this month
+      const monthInteractions = recentInteractions.filter(i => {
+        const interactionDate = new Date(i.timestamp);
+        const interactionMonth = currentMonthKey(interactionDate);
+        return interactionMonth === monthKey;
+      });
+
+      const enhancedStats = {
+        monthKey,
+        totals: sums,
+        recentInteractions,
+        wasteRate,
+        summary: {
+          totalCost: sums.total || 0,
+          totalInteractions: monthInteractions.length,
+          avgCostPerTask: monthInteractions.length ? (sums.total / monthInteractions.length) : 0,
+          wasteRate
+        }
+      };
+
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ monthKey, totals: sums }));
+      res.end(JSON.stringify(enhancedStats));
       return;
     }
 
-    // Simple HTML dashboard
+    // Enhanced React Dashboard
     if (req.method === 'GET' && req.url === '/dashboard') {
-      const html = `<!doctype html><html><head><meta charset="utf-8"><title>TokNxr Dashboard</title></head><body style="font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;padding:24px;">
-        <h1>TokNxr Dashboard</h1>
-        <p>Month: <span id="month"></span></p>
-        <pre id="totals" style="background:#f6f8fa;padding:12px;border-radius:6px;overflow:auto"></pre>
-        <script>
-          fetch('/api/stats').then(r=>r.json()).then(d=>{
-            document.getElementById('month').textContent = d.monthKey;
-            document.getElementById('totals').textContent = JSON.stringify(d.totals, null, 2);
-          }).catch(err=>{document.getElementById('totals').textContent=String(err)});
-        </script>
-      </body></html>`;
+      const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TokNXR Dashboard - AI Analytics</title>
+  <style>
+    /* Inline critical CSS for better loading experience */
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+    #dashboard-root { min-height: 100vh; }
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-size: 18px;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body>
+  <div id="dashboard-root">
+    <div class="loading">Loading TokNXR Dashboard...</div>
+  </div>
+  <script>
+    // Inline the dashboard script
+    ${fs.readFileSync(path.resolve(process.cwd(), 'src/dashboard.tsx'), 'utf8').replace(/export default function Dashboard/, 'function Dashboard').replace(/import React.*$/m, '').replace(/import { createRoot }.*$/m, '')}
+  </script>
+</body>
+</html>`;
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(html);
       return;
     }
 
-    const matchedProvider = providerConfig.providers.find((p: any) => req.url?.startsWith(p.routePrefix));
+    const matchedProvider = providerConfig.providers.find((p: ProviderConfig['providers'][0]) => req.url?.startsWith(p.routePrefix));
 
     if (req.method === 'POST' && matchedProvider) {
       try {
@@ -119,7 +222,7 @@ export const startProxyServer = async () => {
           const preMonth = currentMonthKey();
           const preSums = computeMonthlySpend(preLogPath, preMonth);
           let overCap = false;
-          let reasons: string[] = [];
+          const reasons: string[] = [];
           if (prePolicy.monthlyUSD && preSums.total > prePolicy.monthlyUSD) {
             overCap = true; reasons.push(`total>${prePolicy.monthlyUSD}`);
           }
@@ -166,7 +269,7 @@ export const startProxyServer = async () => {
             const retry = await axios.post(targetUrl, requestData, { headers, timeout: 20000, validateStatus: () => true });
             if (retry.status < 500) {
               apiResponse.status = retry.status;
-              (apiResponse as any).data = retry.data;
+              (apiResponse as { data: unknown }).data = retry.data;
               break;
             }
           }
@@ -269,7 +372,7 @@ export const startProxyServer = async () => {
         if (policy) {
           const monthKey = currentMonthKey();
           const sums = computeMonthlySpend(logFilePath, monthKey);
-          let breached: string[] = [];
+          const breached: string[] = [];
           if (policy.monthlyUSD && sums.total > policy.monthlyUSD) {
             breached.push(`total>${policy.monthlyUSD}`);
           }
@@ -292,13 +395,14 @@ export const startProxyServer = async () => {
         }
         // --------------------------
 
-        res.writeHead(apiResponse.status, { ...apiResponse.headers } as any);
+        res.writeHead(apiResponse.status, apiResponse.headers as Record<string, string>);
         res.end(JSON.stringify(responseData));
 
         console.log(chalk.magenta(`[Proxy] Request successfully proxied and data tracked. | requestId=${requestId}`));
 
-      } catch (error: any) {
-        console.error(chalk.red(`[Proxy] Error: ${error.message} | requestId=${requestId}`));
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.error(chalk.red(`[Proxy] Error: ${errorMessage} | requestId=${requestId}`));
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Failed to proxy request', requestId }));
       }
@@ -310,6 +414,6 @@ export const startProxyServer = async () => {
 
   server.listen(PORT, () => {
     console.log(chalk.yellow(`[Proxy] Server listening on http://localhost:${PORT}`));
-    console.log(chalk.yellow('Loaded providers:', providerConfig.providers.map((p: any) => p.name).join(', ')));
+    console.log(chalk.yellow('Loaded providers:', providerConfig.providers.map((p: ProviderConfig['providers'][0]) => p.name).join(', ')));
   });
 };
