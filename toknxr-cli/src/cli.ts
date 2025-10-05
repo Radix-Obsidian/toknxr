@@ -16,17 +16,26 @@ process.stderr.on('error', (err: any) => {
 
 const program = new Command();
 
-// Branding and welcome message
-console.log(`
-🚀 TokNXR - AI Effectiveness & Code Quality Analysis
-   Transform how you evaluate AI coding tools
+// ASCII Art Welcome Screen with gradient colors
+const asciiArt = `
+${chalk.blue('  ████████╗')}${chalk.hex('#6B5BED')('  ██████╗ ')}${chalk.hex('#9B5BED')(' ██╗  ██╗')}${chalk.hex('#CB5BED')(' ███╗   ██╗')}${chalk.hex('#ED5B9B')(' ██╗  ██╗')}${chalk.hex('#ED5B6B')(' ██████╗ ')}
+${chalk.blue('  ╚══██╔══╝')}${chalk.hex('#6B5BED')(' ██╔═══██╗')}${chalk.hex('#9B5BED')(' ██║ ██╔╝')}${chalk.hex('#CB5BED')(' ████╗  ██║')}${chalk.hex('#ED5B9B')(' ╚██╗██╔╝')}${chalk.hex('#ED5B6B')(' ██╔══██╗')}
+${chalk.blue('     ██║   ')}${chalk.hex('#6B5BED')(' ██║   ██║')}${chalk.hex('#9B5BED')(' █████╔╝ ')}${chalk.hex('#CB5BED')(' ██╔██╗ ██║')}${chalk.hex('#ED5B9B')('  ╚███╔╝ ')}${chalk.hex('#ED5B6B')(' ██████╔╝')}
+${chalk.blue('     ██║   ')}${chalk.hex('#6B5BED')(' ██║   ██║')}${chalk.hex('#9B5BED')(' ██╔═██╗ ')}${chalk.hex('#CB5BED')(' ██║╚██╗██║')}${chalk.hex('#ED5B9B')('  ██╔██╗ ')}${chalk.hex('#ED5B6B')(' ██╔══██╗')}
+${chalk.blue('     ██║   ')}${chalk.hex('#6B5BED')(' ╚██████╔╝')}${chalk.hex('#9B5BED')(' ██║  ██╗')}${chalk.hex('#CB5BED')(' ██║ ╚████║')}${chalk.hex('#ED5B9B')(' ██╔╝ ██╗')}${chalk.hex('#ED5B6B')(' ██║  ██║')}
+${chalk.blue('     ╚═╝   ')}${chalk.hex('#6B5BED')('  ╚═════╝ ')}${chalk.hex('#9B5BED')(' ╚═╝  ╚═╝')}${chalk.hex('#CB5BED')(' ╚═╝  ╚═══╝')}${chalk.hex('#ED5B9B')(' ╚═╝  ╚═╝')}${chalk.hex('#ED5B6B')(' ╚═╝  ╚═╝')}
 
-   Measuring not just costs, but actual development ROI
-   See what quality code you get for tokens spent
+${chalk.cyan('Tips for getting started:')}
+${chalk.white('1. Start tracking:')} ${chalk.yellow('toknxr start')} ${chalk.gray('- Launch the proxy server')}
+${chalk.white('2. View analytics:')} ${chalk.yellow('toknxr stats')} ${chalk.gray('- See token usage and code quality')}
+${chalk.white('3. Deep dive:')} ${chalk.yellow('toknxr code-analysis')} ${chalk.gray('- Detailed quality insights')}
+${chalk.white('4. Set limits:')} ${chalk.yellow('toknxr policy:init')} ${chalk.gray('- Configure spending policies')}
+${chalk.white('5. Need help?')} ${chalk.yellow('toknxr --help')} ${chalk.gray('- View all commands')}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${chalk.gray('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')}
+`;
 
-`);
+console.log(asciiArt);
 
 program
   .name('toknxr')
