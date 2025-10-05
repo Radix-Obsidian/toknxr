@@ -1,0 +1,28 @@
+{
+  "name": "toknxr-cli",
+  "version": "0.1.0",
+  "description": "A CLI tool to automatically track AI interactions.",
+  "main": "lib/cli.js",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/cli.ts",
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "ai",
+    "dev-tools",
+    "cli"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^24.6.2",
+    "axios": "^1.12.2",
+    "chalk": "^5.6.2",
+    "commander": "^14.0.1",
+    "ora": "^9.0.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}
