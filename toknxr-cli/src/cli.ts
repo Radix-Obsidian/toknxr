@@ -16,9 +16,21 @@ process.stderr.on('error', (err: any) => {
 
 const program = new Command();
 
+// Branding and welcome message
+console.log(`
+🚀 TokNXR - AI Effectiveness & Code Quality Analysis
+   Transform how you evaluate AI coding tools
+
+   Measuring not just costs, but actual development ROI
+   See what quality code you get for tokens spent
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+`);
+
 program
-  .name('toknxr-cli')
-  .description('A CLI tool to automatically track AI interactions.')
+  .name('toknxr')
+  .description('AI Effectiveness & Code Quality Analysis CLI')
   .version('0.1.0');
 
 program
