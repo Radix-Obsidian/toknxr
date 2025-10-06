@@ -1,0 +1,18 @@
+{
+  "version": "1",
+  "monthlyUSD": 50,
+  "perProviderMonthlyUSD": {
+    "Gemini-Pro": 30,
+    "Gemini-Free": 10,
+    "Ollama-Llama3": 0,
+    "OpenAI-GPT4": 20,
+    "Anthropic-Claude": 15
+  },
+  "webhookUrl": "",
+  "_comments": {
+    "monthlyUSD": "Total monthly budget across all providers in USD",
+    "perProviderMonthlyUSD": "Individual provider budget limits",
+    "webhookUrl": "Optional webhook URL for budget alert notifications (leave empty for no alerts)",
+    "supportedProviders": ["Gemini-Pro", "Ollama-Llama3", "OpenAI-GPT4", "Gemini-Free", "Anthropic-Claude"]
+  }
+}

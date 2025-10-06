@@ -8,8 +8,9 @@ import { randomUUID } from 'node:crypto';
 import { estimateCostUSD } from './pricing.js';
 import { loadPolicy, currentMonthKey, computeMonthlySpend, sendBudgetAlert } from './policy.js';
 import { analyzeCodeQuality, scoreEffectiveness, extractCodeFromResponse, CodeQualityMetrics } from './code-analysis.js';
+import { hallucinationDetector, HallucinationDetection } from './hallucination-detector.js';
 
-const PORT = 8787;
+const PORT = 8788;
 
 interface AIInteraction {
   timestamp: string;
@@ -27,6 +28,8 @@ interface AIInteraction {
   codeQualityScore?: number;
   codeQualityMetrics?: CodeQualityMetrics;
   effectivenessScore?: number;
+  // Hallucination detection
+  hallucinationDetection?: HallucinationDetection;
 }
 
 // Helper to resolve dot notation paths
@@ -317,38 +320,54 @@ export const startProxyServer = async () => {
           taskType: isCodeRequest ? 'coding' : 'chat',
         };
 
-        // --- Code Quality Analysis (if this is a coding request) ---
-        if (isCodeRequest && userPrompt && aiResponseText) {
-          console.log(chalk.cyan(`[Proxy] Running code quality analysis... | requestId=${requestId}`));
-
-          // Extract code from response
-          const extractedCodeResult = extractCodeFromResponse(aiResponseText);
-          if (extractedCodeResult) {
-            interactionData.extractedCode = extractedCodeResult.code;
-
-            // Analyze code quality
-            const qualityMetrics = analyzeCodeQuality(extractedCodeResult.code, extractedCodeResult.language);
-            interactionData.codeQualityMetrics = qualityMetrics;
-
-            // Calculate overall quality score (0-100)
-            let qualityScore = 50; // Base
-            if (qualityMetrics.syntaxValid) qualityScore += 20;
-            qualityScore += Math.round(qualityMetrics.estimatedReadability * 2); // 0-20
-            if (qualityMetrics.hasFunctions || qualityMetrics.hasClasses) qualityScore += 15;
-            if (qualityMetrics.potentialIssues.length === 0) qualityScore += 10;
-            if (qualityMetrics.linesOfCode > 20) qualityScore += 5; // Substantial implementation
-            interactionData.codeQualityScore = Math.min(100, qualityScore);
-
-            // Score effectiveness (how well the AI understood and fulfilled the request)
-            const effectiveness = scoreEffectiveness(userPrompt, aiResponseText, extractedCodeResult.code);
-            interactionData.effectivenessScore = effectiveness.overallEffectiveness;
-
-            console.log(chalk.green(`[Proxy] Code analysis complete - Quality: ${qualityScore}/100, Effectiveness: ${effectiveness.overallEffectiveness}/100 | requestId=${requestId}`));
-          }
+        // --- Enhanced AI Analysis (for all requests) ---
+        if (userPrompt && aiResponseText) {
+          console.log(chalk.cyan(`[Proxy] Running AI analysis pipeline... | requestId=${requestId}`));
 
           // Store original texts for analysis
           interactionData.userPrompt = userPrompt;
           interactionData.aiResponse = aiResponseText;
+
+          // Run hallucination detection on all interactions
+          const hallucinationDetection = hallucinationDetector.detectHallucination(
+            userPrompt,
+            aiResponseText
+          );
+
+          // Add hallucination data to interaction (will be serialized to JSON)
+          interactionData.hallucinationDetection = hallucinationDetection;
+
+          console.log(chalk.cyan(`[Proxy] Hallucination detection complete - Confidence: ${hallucinationDetection.confidence}%, Likely: ${hallucinationDetection.isLikelyHallucination} | requestId=${requestId}`));
+
+          // Code Quality Analysis (if this is a coding request)
+          if (isCodeRequest) {
+            console.log(chalk.cyan(`[Proxy] Running code quality analysis... | requestId=${requestId}`));
+
+            // Extract code from response
+            const extractedCodeResult = extractCodeFromResponse(aiResponseText);
+            if (extractedCodeResult) {
+              interactionData.extractedCode = extractedCodeResult.code;
+
+              // Analyze code quality
+              const qualityMetrics = analyzeCodeQuality(extractedCodeResult.code, extractedCodeResult.language);
+              interactionData.codeQualityMetrics = qualityMetrics;
+
+              // Calculate overall quality score (0-100)
+              let qualityScore = 50; // Base
+              if (qualityMetrics.syntaxValid) qualityScore += 20;
+              qualityScore += Math.round(qualityMetrics.estimatedReadability * 2); // 0-20
+              if (qualityMetrics.hasFunctions || qualityMetrics.hasClasses) qualityScore += 15;
+              if (qualityMetrics.potentialIssues.length === 0) qualityScore += 10;
+              if (qualityMetrics.linesOfCode > 20) qualityScore += 5; // Substantial implementation
+              interactionData.codeQualityScore = Math.min(100, qualityScore);
+
+              // Score effectiveness (how well the AI understood and fulfilled the request)
+              const effectiveness = scoreEffectiveness(userPrompt, aiResponseText, extractedCodeResult.code);
+              interactionData.effectivenessScore = effectiveness.overallEffectiveness;
+
+              console.log(chalk.green(`[Proxy] Code analysis complete - Quality: ${qualityScore}/100, Effectiveness: ${effectiveness.overallEffectiveness}/100 | requestId=${requestId}`));
+            }
+          }
         }
         // ---------------------------
 

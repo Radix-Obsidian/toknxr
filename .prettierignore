@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+.next/
+out/
+build/
+dist/
+
+# Generated files
+*.tsbuildinfo
+next-env.d.ts
+
+# Logs
+*.log
+
+# Environment files
+.env*
+
+# Package managers
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Firebase
+.dataconnect/
+
+# Coverage
+coverage/
+
+# IDE
+.vscode/
+.idea/
