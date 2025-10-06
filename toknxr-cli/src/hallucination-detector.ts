@@ -148,7 +148,7 @@ export class HallucinationDetector {
   /**
    * Detect internal contradictions
    */
-  private detectContradictions(response: string, context?: string[]): HallucinationEvidence[] {
+  private detectContradictions(response: string, _context?: string[]): HallucinationEvidence[] {
     const evidence: HallucinationEvidence[] = [];
 
     // Look for contradictory statements
@@ -205,7 +205,7 @@ export class HallucinationDetector {
     ];
 
     methodPatterns.forEach(pattern => {
-      const matches = [...response.matchAll(pattern)];
+      const matches = Array.from(response.matchAll(pattern));
       const suspiciousMethods = matches.filter(match => {
         const methodName = match[1];
         return methodName.length > 10 &&
@@ -273,7 +273,7 @@ export class HallucinationDetector {
     ];
 
     citationPatterns.forEach(pattern => {
-      const matches = [...response.matchAll(pattern)];
+      const matches = Array.from(response.matchAll(pattern));
       matches.forEach(match => {
         const citation = match[1] || match[0];
         if (citation && citation.length > 50) { // Unusually long citation
@@ -294,7 +294,7 @@ export class HallucinationDetector {
    */
   private calculateOverallConfidence(
     evidence: HallucinationEvidence[],
-    categories: HallucinationCategory[]
+    _categories: HallucinationCategory[]
   ): number {
     if (evidence.length === 0) return 0;
 

@@ -9,7 +9,7 @@ Thank you for your interest in contributing to TokNxr! We welcome contributions 
 - Node.js 20 or higher
 - npm or yarn
 - Git
-- Firebase CLI (for web dashboard development)
+- Supabase CLI (for web dashboard development)
 
 ### Development Setup
 
@@ -34,7 +34,7 @@ Thank you for your interest in contributing to TokNxr! We welcome contributions 
    # Copy example environment file
    cp .env.example .env.local
    
-   # Edit .env.local with your Firebase credentials
+   # Edit .env.local with your Supabase credentials
    # (See README.md for detailed setup instructions)
    ```
 
@@ -43,8 +43,8 @@ Thank you for your interest in contributing to TokNxr! We welcome contributions 
    # Terminal 1: Start web app
    npm run dev
    
-   # Terminal 2: Start Firebase emulators
-   npm run emulators
+   # Terminal 2: Start Supabase
+   supabase start
    
    # Terminal 3: Start CLI proxy
    npm run start --prefix toknxr-cli

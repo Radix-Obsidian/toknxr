@@ -1,9 +1,9 @@
-import http from 'http';
+import * as http from 'http';
 import 'dotenv/config';
 import chalk from 'chalk';
 import axios from 'axios';
-import fs from 'node:fs';
-import path from 'node:path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { estimateCostUSD } from './pricing.js';
 import { loadPolicy, currentMonthKey, computeMonthlySpend, sendBudgetAlert } from './policy.js';

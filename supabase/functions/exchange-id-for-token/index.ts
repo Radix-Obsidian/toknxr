@@ -1,9 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { create, getNumericDate } from 'https://deno.land/x/djwt/mod.ts'
-
-interface ExchangeIdForTokenRequest {
-  machine_id: string
-}
+import { create, getNumericDate, Header } from 'https://deno.land/x/djwt/mod.ts'
 
 Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method !== 'POST') {
@@ -11,52 +7,68 @@ Deno.serve(async (req: Request): Promise<Response> => {
   }
 
   try {
-    // Parse request body
-    const body: ExchangeIdForTokenRequest = await req.json()
-
-    const { machine_id } = body
-    if (!machine_id || typeof machine_id !== 'string') {
-      return new Response(JSON.stringify({ error: 'Invalid machine_id' }), {
-        status: 400,
+    // Get authentication token from header
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
         headers: { 'Content-Type': 'application/json' }
       })
     }
 
-    // For simplicity, we'll generate a JWT for the machine_id as the user ID
-    // In a real implementation, you might validate against a user_sessions table
-    // or check if the machine_id is associated with an authenticated user
+    const token = authHeader.replace('Bearer ', '')
 
-    // Get Supabase configuration
+    // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      global: { headers: { Authorization: `Bearer ${token}` } }
+    })
 
-    if (!supabaseUrl || !serviceRoleKey) {
-      return new Response(JSON.stringify({ error: 'Server configuration error' }), {
-        status: 500,
+    // Verify authentication
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Invalid token' }), {
+        status: 401,
         headers: { 'Content-Type': 'application/json' }
       })
     }
 
-    // Create JWT payload similar to Supabase auth
+    // Create a custom token for CLI use based on the authenticated user
     const payload = {
       aud: 'authenticated',
       exp: getNumericDate(60 * 60 * 24 * 7), // 7 days
-      sub: machine_id, // Use machine_id as the user ID
-      email: `${machine_id}@cli.local`, // Fake email for Supabase
+      sub: user.id, // Use the real user ID
+      email: user.email,
       app_metadata: {
-        provider: 'cli',
-        providers: ['cli']
+        provider: 'web-cli-bridge',
+        providers: ['web-cli-bridge']
       },
       user_metadata: {
-        machine_id: machine_id
+        source: 'web_app',
+        original_user_id: user.id
       },
       role: 'authenticated'
     }
 
-    // Create JWT using the service role key as secret
-    const token = await create({ alg: 'HS256', typ: 'JWT' }, payload, serviceRoleKey)
+    // Import the service key for signing
+    const key = await crypto.subtle.importKey(
+        'raw',
+        new TextEncoder().encode(supabaseServiceKey),
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign', 'verify']
+    );
 
-    return new Response(JSON.stringify({ token }), {
+    const header: Header = {
+        alg: 'HS256',
+        typ: 'JWT',
+    };
+
+    // Create JWT using the imported key
+    const customToken = await create(header, payload, key)
+
+    return new Response(JSON.stringify({ customToken }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     })

@@ -20,6 +20,6 @@ export interface TrackerState {
 
 export interface TrackerResponse {
   success: boolean;
-  data?: any;
+  data?: Record<string, unknown>;
   message?: string;
 }

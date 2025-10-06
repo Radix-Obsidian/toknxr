@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 
 interface SignupFormProps {
@@ -8,13 +9,15 @@ interface SignupFormProps {
 }
 
 export const SignupForm: React.FC<SignupFormProps> = ({ onToggleMode }) => {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { signUp, signInWithGoogle, signInWithGithub } = useAuth();
+  const [success, setSuccess] = useState(false);
+  const { user, signUp, signInWithGoogle, signInWithGithub } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,8 +38,26 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onToggleMode }) => {
 
     try {
       await signUp(email, password, displayName);
+      setSuccess(true);
+      console.log('Success state set, user is:', user);
+
+      // Wait for user to be authenticated before redirecting
+      const checkAuthAndRedirect = () => {
+        console.log('Checking auth state, user is:', user);
+        if (user) {
+          console.log('User found, redirecting to dashboard');
+          router.push('/dashboard');
+        } else {
+          // Check again in 500ms
+          setTimeout(checkAuthAndRedirect, 500);
+        }
+      };
+
+      // Start checking after a brief delay to allow auth state to update
+      setTimeout(checkAuthAndRedirect, 1000);
     } catch (error: any) {
       setError(error.message);
+      setSuccess(false);
     } finally {
       setLoading(false);
     }
@@ -76,6 +97,15 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onToggleMode }) => {
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded mb-4">
             {error}
+          </div>
+        )}
+
+        {success && (
+          <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded mb-4">
+            <div className="font-medium mb-1">Account created successfully! 🎉</div>
+            <div className="text-sm">
+              Redirecting you to the dashboard... Welcome to TokNxr!
+            </div>
           </div>
         )}
 

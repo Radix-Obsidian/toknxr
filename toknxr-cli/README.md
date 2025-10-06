@@ -6,7 +6,7 @@
 
 ### Option 1: Ultimate One-Command Setup (Recommended)
 ```bash
-# From the my-first-mvp directory, run:
+# From the ToknXR-CLI directory, run:
 ./toknxr-cli/start.sh
 ```
 This single command does **EVERYTHING**:

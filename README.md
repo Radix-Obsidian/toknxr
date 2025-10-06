@@ -189,7 +189,7 @@ cp .env.example .env.local
 
 # Start development servers
 npm run dev          # Next.js app (http://localhost:3000)
-npm run emulators    # Firebase emulators
+supabase start       # Supabase local development
 ```
 
 ### Environment Variables

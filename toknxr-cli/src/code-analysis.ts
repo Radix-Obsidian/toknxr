@@ -145,7 +145,7 @@ export function extractCodeFromResponse(response: string): { code: string; langu
 
   // Look for inline code that might be a complete solution
   const inlineCodeRegex = /`([^`\n]+)`/g;
-  const inlineMatches = [...response.matchAll(inlineCodeRegex)];
+  const inlineMatches = Array.from(response.matchAll(inlineCodeRegex));
 
   if (inlineMatches.length > 0) {
     // If multiple inline codes, combine them

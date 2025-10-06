@@ -48,9 +48,9 @@ echo "Removing test coverage..."
 rm -rf coverage/
 rm -rf .nyc_output/
 
-# Remove Firebase emulator data
-echo "Removing Firebase emulator data..."
-rm -rf .dataconnect/
+# Remove Supabase temp files
+echo "Removing Supabase temp files..."
+rm -rf supabase/.temp/
 
 # Clean CLI directory
 echo "Cleaning CLI directory..."

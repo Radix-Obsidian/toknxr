@@ -1,10 +1,10 @@
-import http from 'http';
+import * as http from 'http';
 import open from 'open';
 import chalk from 'chalk';
-import keytar from 'keytar'; // Import keytar
+import * as keytar from 'keytar'; // Import keytar
 
-const CLI_LOGIN_PORT = 8788;
-const WEB_APP_URL = 'http://localhost:5002';
+const CLI_LOGIN_PORT = 8789;
+const WEB_APP_URL = 'http://localhost:3000';
 const SERVICE_NAME = 'toknxr-cli'; // A unique name for our service in the keychain
 const ACCOUNT_NAME = 'default-user'; // A generic account name for the stored token
 
@@ -70,8 +70,9 @@ export const login = async () => {
     const supabaseJwt = await server; // Get the Supabase JWT
     await storeToken(supabaseJwt); // Store the Supabase JWT securely
     console.log(chalk.cyan('Authentication complete. You can now use TokNxr CLI commands.'));
-  } catch (error: any) {
-    console.error(chalk.red('Login failed:', error.message));
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(chalk.red('Login failed:', message));
   }
 };
 
