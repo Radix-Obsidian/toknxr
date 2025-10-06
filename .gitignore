@@ -1,6 +1,4 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
+# Dependencies
 /node_modules
 /.pnp
 .pnp.*
@@ -10,41 +8,69 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
+# Testing
 /coverage
+*.lcov
 
-# next.js
+# Next.js
 /.next/
 /out/
 
-# production
+# Production
 /build
+/dist
 
-# misc
+# Environment variables
+.env*
+!.env.example
+
+# IDE and OS
 .DS_Store
-*.pem
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
-# debug
+# Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+*-debug.log
 
-# env files (can opt-in for committing if needed)
-.env*
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
 
-# vercel
+# Temporary folders
+.tmp/
+.temp/
+.cache/
+
+# Firebase
+/config/
+.dataconnect/
+apphosting.emulator.yaml
+
+# Vercel
 .vercel
 
-# typescript
+# TypeScript
 *.tsbuildinfo
 next-env.d.ts
 
-# firebase admin sdk credentials
-/config/
-.env.local
+# Package managers
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
 
-# Firebase
-*-debug.log
-apphosting.emulator.yaml
-.dataconnect/
+# Development tools
+.qodo/
+.continue/
+
+# Jest
+/coverage/
+jest-coverage/

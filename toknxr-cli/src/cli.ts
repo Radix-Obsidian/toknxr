@@ -4,6 +4,7 @@ import { startProxyServer } from './proxy.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import axios from 'axios';
+import { createClient } from '@supabase/supabase-js';
 import open from 'open';
 
 // Gracefully handle broken pipe (e.g., piping output to `head`)
@@ -29,13 +30,28 @@ ${chalk.cyan('Tips for getting started:')}
 ${chalk.white('1. Start tracking:')} ${chalk.yellow('toknxr start')} ${chalk.gray('- Launch the proxy server')}
 ${chalk.white('2. View analytics:')} ${chalk.yellow('toknxr stats')} ${chalk.gray('- See token usage and code quality')}
 ${chalk.white('3. Deep dive:')} ${chalk.yellow('toknxr code-analysis')} ${chalk.gray('- Detailed quality insights')}
-${chalk.white('4. Set limits:')} ${chalk.yellow('toknxr policy:init')} ${chalk.gray('- Configure spending policies')}
-${chalk.white('5. Need help?')} ${chalk.yellow('toknxr --help')} ${chalk.gray('- View all commands')}
+${chalk.white('4. Code review:')} ${chalk.yellow('toknxr review')} ${chalk.gray('- Review AI-generated code')}
+${chalk.white('5. Set limits:')} ${chalk.yellow('toknxr policy:init')} ${chalk.gray('- Configure spending policies')}
+${chalk.white('6. Need help?')} ${chalk.yellow('toknxr --help')} ${chalk.gray('- View all commands')}
 
 ${chalk.gray('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')}
+
+${chalk.hex('#FFD700')('🐑 Powered by Golden Sheep AI')}
+
 `;
 
 console.log(asciiArt);
+
+// --- Supabase Client ---
+const supabaseUrl = process.env.SUPABASE_URL || '';
+const supabaseKey = process.env.SUPABASE_KEY || '';
+
+if (!supabaseUrl || !supabaseKey) {
+  console.error(chalk.red('Error: Supabase URL or Key not found in environment variables.'));
+  process.exit(1);
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 program
   .name('toknxr')
@@ -48,6 +64,106 @@ program
   .action(() => {
     console.log(chalk.green('Starting TokNxr proxy server...'));
     startProxyServer();
+  });
+
+program
+  .command('sync')
+  .description('Sync local interaction logs to the Supabase dashboard.')
+  .option('--clear', 'Clear the log file after a successful sync.')
+  .action(async (options) => {
+    console.log(chalk.blue('Syncing local analytics with the cloud dashboard...'));
+
+    const logFilePath = path.resolve(process.cwd(), 'interactions.log');
+    if (!fs.existsSync(logFilePath)) {
+      console.log(chalk.yellow('No interactions.log file found. Nothing to sync.'));
+      return;
+    }
+
+    const fileContent = fs.readFileSync(logFilePath, 'utf8');
+    const lines = fileContent.trim().split('\n');
+    if (lines.length === 0 || (lines.length === 1 && lines[0] === '')) {
+        console.log(chalk.yellow('Log file is empty. Nothing to sync.'));
+        return;
+    }
+
+    const logs = [];
+    for (const line of lines) {
+      try {
+        const log = JSON.parse(line);
+        logs.push(log);
+      } catch (error) {
+        console.warn(`Skipping invalid log entry: ${line}`);
+      }
+    }
+
+    if (logs.length === 0) {
+      console.log('No valid interactions to sync.');
+      return;
+    }
+
+    // Map logs to interactions
+    const interactions = [];
+    for (const log of logs) {
+      // Find ai_service_id by provider and model
+      const { data: aiService, error: aiError } = await supabase
+        .from('ai_services')
+        .select('id')
+        .eq('provider', log.provider)
+        .eq('name', log.model)
+        .single();
+
+      if (aiError || !aiService) {
+        console.warn(`AI service not found for provider: ${log.provider}, model: ${log.model}`);
+        continue;
+      }
+
+      // Assume project_id - for now, use a default or query user's projects
+      // TODO: Add project selection or default project
+      const { data: projects, error: projError } = await supabase
+        .from('projects')
+        .select('id')
+        .limit(1);
+
+      if (projError || !projects || projects.length === 0) {
+        console.error('No projects found for user.');
+        continue;
+      }
+
+      const projectId = projects[0].id;
+
+      const interaction = {
+        project_id: projectId,
+        ai_service_id: aiService.id,
+        tokens_used: log.totalTokens,
+        cost_in_cents: Math.round(log.costUSD * 100),
+        timestamp: new Date(log.timestamp).toISOString(),
+        request_details: log.userPrompt || '',
+        response_details: log.aiResponse || log.extractedCode || '',
+      };
+
+      interactions.push(interaction);
+    }
+
+    if (interactions.length === 0) {
+      console.log('No interactions to insert.');
+      return;
+    }
+
+    // Insert interactions
+    const { error: insertError } = await supabase
+      .from('interactions')
+      .insert(interactions);
+
+    if (insertError) {
+      console.error('Error syncing interactions:', insertError);
+    } else {
+      console.log(`Successfully synced ${interactions.length} interactions.`);
+    }
+
+    if (options.clear) {
+      fs.writeFileSync(logFilePath, '');
+      console.log(chalk.gray('Local interactions.log has been cleared.'));
+    }
   });
 
 program
@@ -203,41 +319,9 @@ program
     }
   });
 
-program
-  .command('models')
-  .description('List available Gemini models for your API key')
-  .action(async () => {
-    const key = process.env.GEMINI_API_KEY;
-    if (!key) {
-      console.log(chalk.red('GEMINI_API_KEY not set. Add it to .env or export it.'));
-      process.exit(1);
-    }
-    const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${key}`;
-    const resp = await axios.get(url);
-    const models = resp.data.models || [];
-    console.log(chalk.bold.underline('Available Models'));
-    for (const m of models) {
-      const supports = (m.supportedGenerationMethods || []).join(', ');
-      console.log(`- ${m.name} (${m.displayName}) [${supports}]`);
-    }
-  });
 
-program
-  .command('call')
-  .description('Send a prompt to Gemini via REST (bypasses proxy)')
-  .requiredOption('-m, --model <name>', 'Model name (e.g., models/gemini-2.5-flash)')
-  .requiredOption('-p, --prompt <text>', 'Prompt text')
-  .action(async (opts) => {
-    const key = process.env.GEMINI_API_KEY;
-    if (!key) {
-      console.log(chalk.red('GEMINI_API_KEY not set. Add it to .env or export it.'));
-      process.exit(1);
-    }
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/${opts.model}:generateContent?key=${key}`;
-    const body = { contents: [{ parts: [{ text: opts.prompt }] }] };
-    const resp = await axios.post(endpoint, body, { headers: { 'Content-Type': 'application/json' } });
-    console.log(JSON.stringify(resp.data, null, 2));
-  });
+
+
 
 program
   .command('tail')
@@ -266,7 +350,7 @@ program
   .command('dashboard')
   .description('Open the minimal dashboard served by the proxy (/dashboard)')
   .action(async () => {
-    const url = 'http://localhost:8787/dashboard';
+    const url = 'http://localhost:3000/dashboard'; // Assuming Next.js app serves the dashboard
     console.log(chalk.gray(`Opening ${url}...`));
     await open(url);
   });
@@ -287,15 +371,6 @@ program
       perProviderMonthlyUSD: { 'Gemini-Pro': 30 },
       webhookUrl: ''
     };
-    try {
-      const starterPath = '/Users/saintaugustine/my-first-mvp/ai-foundation-starter-pack/toknxr.policy.template.json';
-      if (fs.existsSync(starterPath)) {
-        const raw = fs.readFileSync(starterPath, 'utf8');
-        fs.writeFileSync(dest, raw);
-        console.log(chalk.green(`Created ${dest} from starter pack`));
-        return;
-      }
-    } catch {}
     fs.writeFileSync(dest, JSON.stringify(fallback, null, 2));
     console.log(chalk.green(`Created ${dest}`));
   });

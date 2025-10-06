@@ -13,7 +13,19 @@
     {
       "name": "Gemini-Pro",
       "routePrefix": "/gemini",
-      "targetUrl": "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent",
+      "targetUrl": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+      "apiKeyEnvVar": "GEMINI_API_KEY",
+      "authHeader": "x-goog-api-key",
+      "tokenMapping": {
+        "prompt": "usageMetadata.promptTokenCount",
+        "completion": "usageMetadata.candidatesTokenCount",
+        "total": "usageMetadata.totalTokenCount"
+      }
+    },
+    {
+      "name": "Gemini-Free",
+      "routePrefix": "/gemini-free",
+      "targetUrl": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
       "apiKeyEnvVar": "GEMINI_API_KEY",
       "authHeader": "x-goog-api-key",
       "tokenMapping": {
@@ -32,6 +44,18 @@
       "tokenMapping": {
         "prompt": "usage.prompt_tokens",
         "completion": "usage.completion_tokens",
+        "total": "usage.total_tokens"
+      }
+    },
+    {
+      "name": "Anthropic-Claude",
+      "routePrefix": "/anthropic",
+      "targetUrl": "https://api.anthropic.com/v1/messages",
+      "apiKeyEnvVar": "ANTHROPIC_API_KEY",
+      "authHeader": "x-api-key",
+      "tokenMapping": {
+        "prompt": "usage.input_tokens",
+        "completion": "usage.output_tokens",
         "total": "usage.total_tokens"
       }
     }

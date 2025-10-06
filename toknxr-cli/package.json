@@ -1,8 +1,7 @@
 {
   "name": "toknxr-cli",
   "version": "0.1.0",
-  "description": "A CLI tool to automatically track AI interactions.",
-  "main": "lib/cli.js",
+  "license": "ISC",
   "type": "module",
   "scripts": {
     "start": "tsx src/cli.ts start",
@@ -10,26 +9,25 @@
     "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [
-    "ai",
-    "dev-tools",
-    "cli"
-  ],
-  "author": "",
-  "license": "ISC",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.47.1",
+    "commander": "^14.0.1",
+    "chalk": "^5.6.2",
+    "axios": "^1.12.2",
+    "open": "^10.2.0",
+    "keytar": "^7.9.0",
+    "ora": "^9.0.0",
+    "cli-spinners": "^3.3.0",
+    "cli-cursor": "^5.0.0",
+    "onetime": "^7.0.0",
+    "is-interactive": "^2.0.0",
+    "@types/keytar": "^4.4.0",
+    "dotenv": "^16.4.5"
+  },
   "devDependencies": {
     "@types/node": "^24.6.2",
-    "axios": "^1.12.2",
-    "chalk": "^5.6.2",
-    "commander": "^14.0.1",
-    "ora": "^9.0.0",
+    "typescript": "^5.9.3",
     "tsx": "^4.20.6",
-    "typescript": "^5.9.3"
-  },
-  "dependencies": {
-    "@types/keytar": "^4.4.0",
-    "firebase": "^12.3.0",
-    "keytar": "^7.9.0",
-    "open": "^10.2.0"
+    "esbuild": "^0.25.10"
   }
 }
