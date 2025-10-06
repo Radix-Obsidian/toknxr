@@ -25,7 +25,7 @@ export function useTrackerForm() {
     isSubmitting: false,
   });
 
-  const updateFormData = (field: keyof TrackerFormData, value: any) => {
+  const updateFormData = (field: keyof TrackerFormData, value: string | number | boolean) => {
     setState(prev => ({
       ...prev,
       formData: {
@@ -52,7 +52,41 @@ export function useTrackerForm() {
     setState(prev => ({ ...prev, result: '', error: '', isSubmitting: true }));
 
     try {
-      const { data, error } = await supabase.functions.invoke('track-interaction', { body: state.formData });
+      // First, find the AI service
+      const { data: aiService, error: aiError } = await supabase
+        .from('ai_services')
+        .select('id')
+        .eq('provider', state.formData.provider)
+        .eq('name', state.formData.model)
+        .single();
+
+      if (aiError || !aiService) {
+        throw new Error('AI service not found for the selected provider and model');
+      }
+
+      // Get the user's project (assuming they have at least one)
+      const { data: projects, error: projError } = await supabase
+        .from('projects')
+        .select('id')
+        .limit(1);
+
+      if (projError || !projects || projects.length === 0) {
+        throw new Error('No projects found. Please create a project first.');
+      }
+
+      const projectId = projects[0].id;
+
+      // Transform form data to match Edge Function expectations
+      const interactionData = {
+        project_id: projectId,
+        ai_service_id: aiService.id,
+        tokens_used: state.formData.totalTokens,
+        cost_in_cents: Math.round(state.formData.costUSD * 100),
+        request_details: `Task: ${state.formData.taskType}, Quality: ${state.formData.qualityRating}, Error: ${state.formData.errorDetected}, Hallucination: ${state.formData.hallucination}`,
+        response_details: `Prompt tokens: ${state.formData.promptTokens}, Completion tokens: ${state.formData.completionTokens}`
+      };
+
+      const { data, error } = await supabase.functions.invoke('track-interaction', { body: interactionData });
       if (error) throw error;
 
       setState(prev => ({
@@ -60,10 +94,10 @@ export function useTrackerForm() {
         result: JSON.stringify(data, null, 2),
         isSubmitting: false,
       }));
-    } catch (err: any) {
+    } catch (err: unknown) {
       setState(prev => ({
         ...prev,
-        error: err.message || 'An error occurred while tracking the interaction',
+        error: err instanceof Error ? err.message : 'An error occurred while tracking the interaction',
         isSubmitting: false,
       }));
     }

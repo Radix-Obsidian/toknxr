@@ -6,9 +6,8 @@ TokNxr is organized as a dual-platform system with a Next.js web application and
 
 - **`src/`** - Next.js web application (dashboard, auth, components)
 - **`toknxr-cli/`** - Standalone CLI tool for local AI tracking
-- **`functions/`** - Firebase Functions for backend logic
+- **`supabase/`** - Supabase configuration, including Edge Functions and migrations
 - **`dataconnect/`** - GraphQL schema and PostgreSQL database definitions
-- **`config/`** - Firebase credentials (gitignored)
 - **`public/`** - Static web assets
 
 ## Build, Test, and Development Commands
@@ -17,7 +16,7 @@ TokNxr is organized as a dual-platform system with a Next.js web application and
 # Web application development
 npm run dev          # Start Next.js dev server with Turbopack
 npm run build        # Build for production
-npm run emulators    # Start Firebase emulators
+supabase start       # Start Supabase local development
 
 # CLI tool operations
 npm run start --prefix toknxr-cli        # Start AI tracking proxy
@@ -26,7 +25,7 @@ npm run setup --prefix toknxr-cli        # Initialize CLI configuration
 
 # Deployment
 npm run deploy:vercel    # Deploy web app to Vercel
-npm run deploy:firebase  # Deploy to Firebase Hosting
+supabase functions deploy # Deploy Supabase functions
 ```
 
 ## Coding Style & Naming Conventions
@@ -41,7 +40,7 @@ npm run deploy:firebase  # Deploy to Firebase Hosting
 
 - **Framework**: No formal testing framework configured
 - **CLI testing**: Manual test scripts in `toknxr-cli/test-*.mjs` for proxy and analysis features
-- **Development testing**: Use Firebase emulators for local testing
+- **Development testing**: Use Supabase local development environment for local testing
 - **Code quality**: Built-in code analysis in CLI tool for AI-generated code
 
 ## Commit & Pull Request Guidelines
@@ -74,15 +73,15 @@ TokNxr is a comprehensive AI effectiveness & code quality analysis system that t
 ```
 [Developer] → [TokNxr CLI Proxy] → [AI Providers (OpenAI/Gemini/etc)]
      ↓              ↓
-[Web Dashboard] ← [Firebase Backend] ← [Local Analytics]
-     ↓              ↓
-[Firestore] ← [Data Connect (PostgreSQL)]
+[Web Dashboard] ← [Supabase Backend] ← [Local Analytics]
+     ↓              
+[Supabase (PostgreSQL)]
 ```
 
 ### Key Components
 - **Next.js Web App** - Dashboard for viewing analytics, user management, and project tracking
 - **CLI Proxy Server** - Local-first tool that intercepts AI API calls for real-time tracking
-- **Firebase Functions** - Serverless backend for authentication and data processing
+- **Supabase Edge Functions** - Serverless backend for authentication and data processing
 - **Data Connect** - GraphQL interface to PostgreSQL for structured data storage
 - **Code Analysis Engine** - Built-in quality scoring and effectiveness measurement
 
@@ -90,7 +89,7 @@ TokNxr is a comprehensive AI effectiveness & code quality analysis system that t
 1. Developer makes AI request through CLI proxy server
 2. Proxy logs interaction data and forwards request to AI provider
 3. Response is analyzed for code quality, effectiveness, and hallucinations
-4. Analytics are stored locally and optionally synced to Firebase
+4. Analytics are stored locally and optionally synced to Supabase
 5. Web dashboard displays aggregated insights and trends
 
 ---
@@ -98,7 +97,7 @@ TokNxr is a comprehensive AI effectiveness & code quality analysis system that t
 ## 📁 Project Structure [Partial Directory Tree]
 
 ```
-my-first-mvp/
+ToknXR-CLI/
 ├── src/                           # Next.js web application
 │   ├── app/                       # App Router pages
 │   │   ├── dashboard/             # Analytics dashboard
@@ -120,13 +119,12 @@ my-first-mvp/
 │   │   └── hallucination-detector.ts # AI hallucination detection
 │   ├── toknxr.config.json         # AI provider configurations
 │   └── interactions.log           # Local interaction storage
-├── functions/                     # Firebase Functions
-│   ├── src/                       # Function source code
-│   └── lib/                       # Compiled JavaScript
+├── supabase/                      # Supabase configuration
+│   ├── functions/                 # Edge functions
+│   └── migrations/                # Database migrations
 ├── dataconnect/                   # GraphQL schema and queries
 │   ├── schema/                    # Database schema definitions
 │   └── example/                   # Sample queries
-└── config/                        # Firebase credentials (gitignored)
 ```
 
 ### Key Files to Know
@@ -134,14 +132,14 @@ my-first-mvp/
 | File | Purpose | When You'd Touch It |
 |------|---------|---------------------|
 | `src/app/layout.tsx` | Root layout with auth provider | Adding global providers/styles |
-| `src/firebase.ts` | Firebase client configuration | Changing Firebase settings |
+| `src/supabase.ts` | Supabase client configuration | Changing Supabase settings |
 | `toknxr-cli/src/cli.ts` | Main CLI interface | Adding new CLI commands |
 | `toknxr-cli/src/proxy.ts` | AI request proxy server | Modifying tracking logic |
 | `toknxr-cli/toknxr.config.json` | AI provider configurations | Adding new AI providers |
-| `functions/src/index.ts` | Firebase Functions entry point | Adding backend functions |
+| `supabase/functions/*/index.ts` | Supabase Edge Function entry point | Adding backend functions |
 | `dataconnect/schema/schema.gql` | Database schema | Modifying data structure |
 | `package.json` | Web app dependencies and scripts | Adding dependencies/scripts |
-| `firebase.json` | Firebase project configuration | Changing deployment settings |
+| `supabase/config.toml` | Supabase project configuration | Changing deployment settings |
 
 ---
 
@@ -150,20 +148,20 @@ my-first-mvp/
 ### Core Technologies
 - **Language:** TypeScript (5.x) - Type safety and modern JavaScript features
 - **Frontend Framework:** Next.js 15 with App Router - React-based web framework with SSR
-- **Backend:** Firebase Functions (Node.js 22) - Serverless backend functions
-- **Database:** Firebase Data Connect (PostgreSQL) + Firestore - Hybrid data storage
+- **Backend:** Supabase Edge Functions (Node.js 22) - Serverless backend functions
+- **Database:** Supabase (PostgreSQL) - Relational database
 
 ### Key Libraries
 - **React 19** - UI library with latest features
 - **Tailwind CSS 4** - Utility-first CSS framework for styling
-- **Firebase SDK 12.3** - Authentication, Firestore, Functions integration
+- **Supabase-js** - Supabase client library
 - **Commander.js** - CLI framework for the toknxr-cli tool
 - **Axios** - HTTP client for AI provider API calls
 - **Chalk** - Terminal styling for CLI output
 
 ### Development Tools
 - **ESLint** - Code linting with Next.js TypeScript configuration
-- **Firebase Emulators** - Local development environment
+- **Supabase CLI** - Local development environment
 - **Turbopack** - Fast bundler for Next.js development
 - **TSX** - TypeScript execution for CLI development
 
@@ -172,7 +170,7 @@ my-first-mvp/
 ## 🌐 External Dependencies
 
 ### Required Services
-- **Firebase Project** - Authentication, Firestore, Functions, Data Connect hosting
+- **Supabase Project** - Authentication, Database, Edge Functions hosting
 - **AI Provider APIs** - OpenAI, Google Gemini, Anthropic Claude, or local Ollama
 - **Vercel (Optional)** - Alternative deployment platform for web app
 
@@ -183,15 +181,12 @@ my-first-mvp/
 ### Environment Variables
 
 ```bash
-# Firebase Configuration (Web App)
-NEXT_PUBLIC_FIREBASE_API_KEY=          # Firebase API key
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=      # Firebase auth domain
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=       # Firebase project ID
+# Supabase Configuration (Web App)
+NEXT_PUBLIC_SUPABASE_URL=              # Supabase project URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY=         # Supabase anonymous key
 
-# Firebase Admin (Functions)
-FIREBASE_PROJECT_ID=                   # Project ID for admin SDK
-FIREBASE_PRIVATE_KEY=                  # Service account private key
-FIREBASE_CLIENT_EMAIL=                 # Service account email
+# Supabase Admin (Edge Functions)
+SUPABASE_SERVICE_ROLE_KEY=             # Supabase service role key
 
 # AI Provider APIs (CLI)
 GEMINI_API_KEY=                        # Google Gemini API key
@@ -222,13 +217,13 @@ ANTHROPIC_API_KEY=                     # Anthropic API key (optional)
 **Code path:** `AI Response` → `code-analysis.ts` → `hallucination-detector.ts` → `Analytics Storage`
 
 ### Web Dashboard Usage
-1. Start development: `npm run dev` and `npm run emulators`
-2. Authenticate via Firebase Auth
+1. Start development: `npm run dev` and `supabase start`
+2. Authenticate via Supabase Auth
 3. View aggregated analytics from CLI interactions
 4. Manage projects and organizations
 5. Set up alerts and budget policies
 
-**Code path:** `Web UI` → `Firebase Functions` → `Data Connect/Firestore` → `Dashboard Display`
+**Code path:** `Web UI` → `Supabase Edge Functions` → `Supabase (PostgreSQL)` → `Dashboard Display`
 
 ---
 
@@ -237,7 +232,7 @@ ANTHROPIC_API_KEY=                     # Anthropic API key (optional)
 ### Performance Considerations
 - **CLI Proxy**: Minimal latency overhead (~10-50ms) for AI request interception
 - **Local Storage**: Interactions stored in local log files for fast access
-- **Serverless**: Firebase Functions auto-scale based on demand
+- **Serverless**: Supabase Edge Functions auto-scale based on demand
 - **Caching**: Next.js static generation for dashboard pages
 
 ### Monitoring
@@ -251,18 +246,17 @@ ANTHROPIC_API_KEY=                     # Anthropic API key (optional)
 
 ### 🔒 Security Considerations
 - **API Keys**: Store in environment variables, never commit to git
-- **Firebase Credentials**: Admin SDK keys in `config/` directory are gitignored
-- **CLI Authentication**: Uses Firebase custom tokens for secure web app integration
+- **CLI Authentication**: Uses Supabase for secure web app integration
 - **Proxy Server**: Only runs locally, doesn't expose credentials to external services
 
 ### 💰 Cost Management
 - **Budget Policies**: Configure spending limits in `toknxr.policy.json`
 - **Provider Costs**: Different AI providers have varying token costs
-- **Firebase Usage**: Functions and Data Connect have usage-based pricing
+- **Supabase Usage**: Has usage-based pricing
 - **Monitoring**: Real-time cost tracking prevents unexpected charges
 
 ### 🔧 Development Gotchas
-- **Emulator Setup**: Firebase emulators must be running for local development
+- **Local Development Setup**: Supabase local development environment must be running for local development
 - **CLI Dependencies**: CLI tool requires separate `npm install` in `toknxr-cli/`
 - **TypeScript Paths**: Uses `@/*` path mapping for clean imports
 - **Environment Variables**: Different variables needed for web app vs CLI tool

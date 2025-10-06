@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 export const UserProfile: React.FC = () => {
   const { user, logout, updateUserProfile } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
-  const [displayName, setDisplayName] = useState(user?.displayName || '');
+  const [displayName, setDisplayName] = useState(user?.user_metadata?.displayName || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -18,8 +18,8 @@ export const UserProfile: React.FC = () => {
     try {
       await updateUserProfile(displayName);
       setIsEditing(false);
-    } catch (error: any) {
-      setError(error.message);
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : 'An error occurred');
     } finally {
       setLoading(false);
     }
@@ -28,8 +28,8 @@ export const UserProfile: React.FC = () => {
   const handleLogout = async () => {
     try {
       await logout();
-    } catch (error: any) {
-      setError(error.message);
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : 'An error occurred');
     }
   };
 
@@ -85,7 +85,7 @@ export const UserProfile: React.FC = () => {
                 type="button"
                 onClick={() => {
                   setIsEditing(false);
-                  setDisplayName(user.displayName || '');
+                  setDisplayName(user.user_metadata?.displayName || '');
                 }}
                 className="bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400"
               >
@@ -94,7 +94,7 @@ export const UserProfile: React.FC = () => {
             </form>
           ) : (
             <div className="flex items-center gap-2">
-              <p className="text-gray-900">{user.displayName || 'No name set'}</p>
+              <p className="text-gray-900">{user.user_metadata?.displayName || 'No name set'}</p>
               <button
                 onClick={() => setIsEditing(true)}
                 className="text-blue-600 hover:text-blue-800 text-sm"
@@ -110,8 +110,8 @@ export const UserProfile: React.FC = () => {
             Account Created
           </label>
           <p className="text-gray-900">
-            {user.metadata.creationTime 
-              ? new Date(user.metadata.creationTime).toLocaleDateString()
+            {user.created_at
+              ? new Date(user.created_at).toLocaleDateString()
               : 'Unknown'
             }
           </p>
@@ -122,8 +122,8 @@ export const UserProfile: React.FC = () => {
             Last Sign In
           </label>
           <p className="text-gray-900">
-            {user.metadata.lastSignInTime 
-              ? new Date(user.metadata.lastSignInTime).toLocaleDateString()
+            {user.last_sign_in_at
+              ? new Date(user.last_sign_in_at).toLocaleDateString()
               : 'Unknown'
             }
           </p>
@@ -133,8 +133,8 @@ export const UserProfile: React.FC = () => {
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Email Verified
           </label>
-          <p className={`${user.emailVerified ? 'text-green-600' : 'text-red-600'}`}>
-            {user.emailVerified ? 'Verified' : 'Not Verified'}
+          <p className={`${user.email_confirmed_at ? 'text-green-600' : 'text-red-600'}`}>
+            {user.email_confirmed_at ? 'Verified' : 'Not Verified'}
           </p>
         </div>
       </div>

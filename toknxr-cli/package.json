@@ -1,8 +1,11 @@
 {
-  "name": "toknxr-cli",
-  "version": "0.1.0",
+  "name": "@goldensheepai/toknxr-cli",
+  "version": "0.2.0",
   "license": "ISC",
   "type": "module",
+  "bin": {
+    "toknxr": "lib/cli.js"
+  },
   "scripts": {
     "start": "tsx src/cli.ts start",
     "cli": "tsx src/cli.ts",
@@ -26,6 +29,8 @@
   },
   "devDependencies": {
     "@types/node": "^24.6.2",
+    "@types/chalk": "^2.2.4",
+    "@types/open": "^6.2.1",
     "typescript": "^5.9.3",
     "tsx": "^4.20.6",
     "esbuild": "^0.25.10"

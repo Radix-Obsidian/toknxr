@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 📊 Code quality analysis and effectiveness scoring
 - 🌐 Modern web dashboard with Next.js 15 and React 19
 - 🏠 Local-first CLI tool with optional cloud sync
-- 🔒 Firebase authentication and real-time data sync
+- 🔒 Supabase authentication and real-time data sync
 - 📱 Responsive design with Tailwind CSS 4
 - 🧪 Comprehensive testing infrastructure with Jest
 - 📈 Performance monitoring with Core Web Vitals
@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Features
 - **Multi-Provider Support**: Track usage across all major AI providers
-- **Real-time Analytics**: Live dashboard with Firebase backend
+- **Real-time Analytics**: Live dashboard with Supabase backend
 - **Code Quality Scoring**: Automatic analysis of AI-generated code
 - **Hallucination Detection**: Identify potential AI-generated issues
 - **Team Management**: Organizations and project tracking
@@ -35,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Next.js 15**: Latest App Router with Turbopack
 - **React 19**: Modern React with concurrent features
 - **TypeScript 5**: Strict type safety throughout
-- **Firebase**: Authentication, Firestore, and Functions
+- **Supabase**: Authentication, PostgreSQL, and Edge Functions
 - **Tailwind CSS 4**: Modern utility-first styling
 - **Jest**: Comprehensive testing with 70% coverage threshold
 - **ESLint + Prettier**: Code quality and formatting

@@ -39,10 +39,10 @@ export const UserMenu: React.FC = () => {
         className="flex items-center space-x-3 text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
       >
         <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-medium">
-          {user.displayName?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U'}
+          {user.user_metadata?.displayName?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U'}
         </div>
         <div className="hidden md:block text-left">
-          <p className="text-gray-900 font-medium">{user.displayName || 'User'}</p>
+          <p className="text-gray-900 font-medium">{user.user_metadata?.displayName || 'User'}</p>
           <p className="text-gray-500 text-xs">{user.email}</p>
         </div>
         <svg
@@ -58,7 +58,7 @@ export const UserMenu: React.FC = () => {
       {isOpen && (
         <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
           <div className="px-4 py-2 border-b border-gray-100">
-            <p className="text-sm font-medium text-gray-900">{user.displayName || 'User'}</p>
+            <p className="text-sm font-medium text-gray-900">{user.user_metadata?.displayName || 'User'}</p>
             <p className="text-sm text-gray-500">{user.email}</p>
           </div>
           

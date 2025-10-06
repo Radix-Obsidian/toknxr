@@ -51,12 +51,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const signUp = async (email: string, password: string, displayName: string) => {
+    console.log('Attempting signup for:', email);
     const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { displayName } } });
+    console.log('Signup response:', { data, error });
     if (error) throw error;
-    if (data.user) {
-      // Optionally, insert user profile into a 'profiles' table
-      await supabase.from('profiles').upsert({ id: data.user.id, display_name: displayName, email: email });
+
+    // Since email confirmations are disabled, user should be auto-signed in
+    // But to ensure auth state updates, let's explicitly sign them in
+    if (data.user && !data.user.email_confirmed_at) {
+      console.log('User not auto-signed in, signing in manually...');
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInError) {
+        console.error('Manual signin failed:', signInError);
+        throw signInError;
+      }
     }
+
+    console.log('Signup successful - user account created and signed in');
   };
 
   const signInWithGoogle = async () => {

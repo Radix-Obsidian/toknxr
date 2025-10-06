@@ -1,23 +1,21 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { useDashboardData } from '../useDashboardData';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/supabase';
 
-// Mock Firebase
-jest.mock('@/firebase', () => ({
-  db: {},
+// Mock Supabase
+jest.mock('@/supabase', () => ({
+  supabase: {
+    from: jest.fn().mockReturnThis(),
+    select: jest.fn().mockReturnThis(),
+    eq: jest.fn().mockReturnThis(),
+    order: jest.fn().mockResolvedValue({ data: [], error: null }),
+  },
 }));
 
 // Mock useAuth hook
 jest.mock('@/hooks/useAuth');
 const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
-
-// Mock Firestore functions
-jest.mock('firebase/firestore', () => ({
-  collection: jest.fn(),
-  query: jest.fn(),
-  onSnapshot: jest.fn(),
-  orderBy: jest.fn(),
-}));
 
 describe('useDashboardData', () => {
   beforeEach(() => {
@@ -27,10 +25,14 @@ describe('useDashboardData', () => {
   it('returns initial state when no user', () => {
     mockUseAuth.mockReturnValue({
       user: null,
-      loading: false,
+      loading: true,
       signIn: jest.fn(),
-      signOut: jest.fn(),
       signUp: jest.fn(),
+      signInWithGoogle: jest.fn(),
+      signInWithGithub: jest.fn(),
+      logout: jest.fn(),
+      resetPassword: jest.fn(),
+      updateUserProfile: jest.fn(),
     });
 
     const { result } = renderHook(() => useDashboardData());
@@ -44,33 +46,41 @@ describe('useDashboardData', () => {
     expect(result.current.loading).toBe(false);
   });
 
-  it('sets loading to true initially when user exists', () => {
-    const mockUser = { uid: 'test-uid' };
+  it('sets loading to true initially when user exists and then false after fetching', async () => {
+    const mockUser = { id: 'test-uid' };
     mockUseAuth.mockReturnValue({
-      user: mockUser,
-      loading: false,
-      signIn: jest.fn(),
-      signOut: jest.fn(),
-      signUp: jest.fn(),
+        user: mockUser as any,
+        loading: false,
+        signIn: jest.fn(),
+        signUp: jest.fn(),
+        signInWithGoogle: jest.fn(),
+        signInWithGithub: jest.fn(),
+        logout: jest.fn(),
+        resetPassword: jest.fn(),
+        updateUserProfile: jest.fn(),
     });
-
-    // Mock onSnapshot to not call the callback immediately
-    const { onSnapshot } = require('firebase/firestore');
-    onSnapshot.mockImplementation(() => jest.fn()); // Return unsubscribe function
 
     const { result } = renderHook(() => useDashboardData());
 
     expect(result.current.loading).toBe(true);
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
   });
 
   it('calculates stats correctly from interactions', async () => {
-    const mockUser = { uid: 'test-uid' };
+    const mockUser = { id: 'test-uid' };
     mockUseAuth.mockReturnValue({
-      user: mockUser,
-      loading: false,
-      signIn: jest.fn(),
-      signOut: jest.fn(),
-      signUp: jest.fn(),
+        user: mockUser as any,
+        loading: false,
+        signIn: jest.fn(),
+        signUp: jest.fn(),
+        signInWithGoogle: jest.fn(),
+        signInWithGithub: jest.fn(),
+        logout: jest.fn(),
+        resetPassword: jest.fn(),
+        updateUserProfile: jest.fn(),
     });
 
     const mockInteractions = [
@@ -94,18 +104,7 @@ describe('useDashboardData', () => {
       },
     ];
 
-    // Mock onSnapshot to call callback with mock data
-    const { onSnapshot } = require('firebase/firestore');
-    onSnapshot.mockImplementation((query: any, callback: any) => {
-      const mockQuerySnapshot = {
-        docs: mockInteractions.map(interaction => ({
-          id: interaction.id,
-          data: () => interaction,
-        })),
-      };
-      callback(mockQuerySnapshot);
-      return jest.fn(); // Return unsubscribe function
-    });
+    (supabase.from('interactions').select('*').eq('user_id', 'test-uid').order as jest.Mock).mockResolvedValue({ data: mockInteractions, error: null });
 
     const { result } = renderHook(() => useDashboardData());
 
@@ -114,17 +113,21 @@ describe('useDashboardData', () => {
     });
 
     expect(result.current.stats.totalCost).toBe(0.06); // 0.01 + 0.02 + 0.03
-    expect(result.current.stats.wasteRate).toBe(33.33333333333333); // 1/3 * 100
-    expect(result.current.stats.hallucinationFreq).toBe(33.33333333333333); // 1/3 * 100
+    expect(result.current.stats.wasteRate).toBeCloseTo(33.33333333333333); // 1/3 * 100
+    expect(result.current.stats.hallucinationFreq).toBeCloseTo(33.33333333333333); // 1/3 * 100
   });
 
   it('provides refetch function', () => {
     mockUseAuth.mockReturnValue({
-      user: null,
-      loading: false,
-      signIn: jest.fn(),
-      signOut: jest.fn(),
-      signUp: jest.fn(),
+        user: null,
+        loading: false,
+        signIn: jest.fn(),
+        signUp: jest.fn(),
+        signInWithGoogle: jest.fn(),
+        signInWithGithub: jest.fn(),
+        logout: jest.fn(),
+        resetPassword: jest.fn(),
+        updateUserProfile: jest.fn(),
     });
 
     const { result } = renderHook(() => useDashboardData());

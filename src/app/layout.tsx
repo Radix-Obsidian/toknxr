@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     'token tracking',
     'code quality',
     'analytics',
-    'Firebase',
+    'Supabase',
     'Next.js',
     'TypeScript',
     'open source',

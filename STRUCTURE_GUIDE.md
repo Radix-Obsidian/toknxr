@@ -50,9 +50,9 @@ src/
 ├── hooks/                         # Shared hooks
 │   └── useAuth.ts
 ├── lib/                          # Utilities and configurations
-│   └── firebase-admin.ts
+
 ├── dataconnect-generated/        # Generated GraphQL client
-├── firebase.ts                   # Firebase configuration
+├── supabase.ts                   # Supabase configuration
 └── middleware.ts                 # Next.js middleware
 ```
 
@@ -222,7 +222,7 @@ Consider adding rules for import organization:
 ### 2. **Testing Structure Added** ✅
    - ✅ Colocated test files with components (`__tests__` folders)
    - ✅ Jest configuration with Next.js integration
-   - ✅ Test setup with mocks for Firebase and Next.js
+   - ✅ Test setup with mocks for Supabase and Next.js
    - ✅ Example tests for components and hooks
    - ✅ Coverage reporting configured
 

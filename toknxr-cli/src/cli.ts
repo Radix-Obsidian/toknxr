@@ -1,11 +1,34 @@
+import 'dotenv/config';
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { startProxyServer } from './proxy.js';
-import fs from 'node:fs';
-import path from 'node:path';
-import axios from 'axios';
-import { createClient } from '@supabase/supabase-js';
+import { login } from './auth.js';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import open from 'open';
+import { syncInteractions } from './sync.js';
+
+// Define a type for the interaction object
+interface Interaction {
+  provider: string;
+  totalTokens: number;
+  promptTokens: number;
+  completionTokens: number;
+  costUSD: number;
+  taskType?: string;
+  codeQualityScore?: number;
+  effectivenessScore?: number;
+  codeQualityMetrics?: {
+    language?: string;
+    potentialIssues?: string[];
+  };
+  userPrompt?: string;
+  model?: string;
+  requestId?: string;
+  timestamp?: string;
+}
+
 
 // Gracefully handle broken pipe (e.g., piping output to `head`)
 process.stdout.on('error', (err: any) => {
@@ -31,8 +54,9 @@ ${chalk.white('1. Start tracking:')} ${chalk.yellow('toknxr start')} ${chalk.gra
 ${chalk.white('2. View analytics:')} ${chalk.yellow('toknxr stats')} ${chalk.gray('- See token usage and code quality')}
 ${chalk.white('3. Deep dive:')} ${chalk.yellow('toknxr code-analysis')} ${chalk.gray('- Detailed quality insights')}
 ${chalk.white('4. Code review:')} ${chalk.yellow('toknxr review')} ${chalk.gray('- Review AI-generated code')}
-${chalk.white('5. Set limits:')} ${chalk.yellow('toknxr policy:init')} ${chalk.gray('- Configure spending policies')}
-${chalk.white('6. Need help?')} ${chalk.yellow('toknxr --help')} ${chalk.gray('- View all commands')}
+${chalk.white('5. Login:')} ${chalk.yellow('toknxr login')} ${chalk.gray('- Authenticate with your account')}
+${chalk.white('6. Set limits:')} ${chalk.yellow('toknxr policy:init')} ${chalk.gray('- Configure spending policies')}
+${chalk.white('7. Need help?')} ${chalk.yellow('toknxr --help')} ${chalk.gray('- View all commands')}
 
 ${chalk.gray('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')}
 
@@ -51,7 +75,7 @@ if (!supabaseUrl || !supabaseKey) {
   process.exit(1);
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase: SupabaseClient = createClient(supabaseUrl, supabaseKey);
 
 program
   .name('toknxr')
@@ -71,99 +95,7 @@ program
   .description('Sync local interaction logs to the Supabase dashboard.')
   .option('--clear', 'Clear the log file after a successful sync.')
   .action(async (options) => {
-    console.log(chalk.blue('Syncing local analytics with the cloud dashboard...'));
-
-    const logFilePath = path.resolve(process.cwd(), 'interactions.log');
-    if (!fs.existsSync(logFilePath)) {
-      console.log(chalk.yellow('No interactions.log file found. Nothing to sync.'));
-      return;
-    }
-
-    const fileContent = fs.readFileSync(logFilePath, 'utf8');
-    const lines = fileContent.trim().split('\n');
-    if (lines.length === 0 || (lines.length === 1 && lines[0] === '')) {
-        console.log(chalk.yellow('Log file is empty. Nothing to sync.'));
-        return;
-    }
-
-    const logs = [];
-    for (const line of lines) {
-      try {
-        const log = JSON.parse(line);
-        logs.push(log);
-      } catch (error) {
-        console.warn(`Skipping invalid log entry: ${line}`);
-      }
-    }
-
-    if (logs.length === 0) {
-      console.log('No valid interactions to sync.');
-      return;
-    }
-
-    // Map logs to interactions
-    const interactions = [];
-    for (const log of logs) {
-      // Find ai_service_id by provider and model
-      const { data: aiService, error: aiError } = await supabase
-        .from('ai_services')
-        .select('id')
-        .eq('provider', log.provider)
-        .eq('name', log.model)
-        .single();
-
-      if (aiError || !aiService) {
-        console.warn(`AI service not found for provider: ${log.provider}, model: ${log.model}`);
-        continue;
-      }
-
-      // Assume project_id - for now, use a default or query user's projects
-      // TODO: Add project selection or default project
-      const { data: projects, error: projError } = await supabase
-        .from('projects')
-        .select('id')
-        .limit(1);
-
-      if (projError || !projects || projects.length === 0) {
-        console.error('No projects found for user.');
-        continue;
-      }
-
-      const projectId = projects[0].id;
-
-      const interaction = {
-        project_id: projectId,
-        ai_service_id: aiService.id,
-        tokens_used: log.totalTokens,
-        cost_in_cents: Math.round(log.costUSD * 100),
-        timestamp: new Date(log.timestamp).toISOString(),
-        request_details: log.userPrompt || '',
-        response_details: log.aiResponse || log.extractedCode || '',
-      };
-
-      interactions.push(interaction);
-    }
-
-    if (interactions.length === 0) {
-      console.log('No interactions to insert.');
-      return;
-    }
-
-    // Insert interactions
-    const { error: insertError } = await supabase
-      .from('interactions')
-      .insert(interactions);
-
-    if (insertError) {
-      console.error('Error syncing interactions:', insertError);
-    } else {
-      console.log(`Successfully synced ${interactions.length} interactions.`);
-    }
-
-    if (options.clear) {
-      fs.writeFileSync(logFilePath, '');
-      console.log(chalk.gray('Local interactions.log has been cleared.'));
-    }
+    await syncInteractions(supabase, options);
   });
 
 program
@@ -178,9 +110,27 @@ program
 
     const fileContent = fs.readFileSync(logFilePath, 'utf8');
     const lines = fileContent.trim().split('\n');
-    const interactions = lines.map(line => JSON.parse(line));
+    const interactions: Interaction[] = lines.map(line => {
+        try {
+            return JSON.parse(line);
+        } catch (error) {
+            console.warn(`Skipping invalid log entry: ${line}`);
+            return null;
+        }
+    }).filter((interaction): interaction is Interaction => interaction !== null);
 
-    const stats = interactions.reduce((acc: any, interaction: any) => {
+    const stats: Record<string, {
+        totalTokens: number;
+        promptTokens: number;
+        completionTokens: number;
+        requestCount: number;
+        costUSD: number;
+        codingCount: number;
+        avgQualityScore: number;
+        avgEffectivenessScore: number;
+        qualitySum: number;
+        effectivenessSum: number;
+    }> = interactions.reduce((acc, interaction) => {
       if (!acc[interaction.provider]) {
         acc[interaction.provider] = {
           totalTokens: 0, promptTokens: 0, completionTokens: 0, requestCount: 0, costUSD: 0,
@@ -203,7 +153,7 @@ program
         }
       }
       return acc;
-    }, {} as any);
+    }, {} as Record<string, any>);
 
     // Calculate averages
     for (const provider in stats) {
@@ -214,7 +164,7 @@ program
       }
     }
 
-    const grandTotals: any = Object.values(stats as any).reduce((acc: any, s: any) => {
+    const grandTotals = Object.values(stats).reduce((acc, s) => {
       acc.totalTokens += s.totalTokens;
       acc.promptTokens += s.promptTokens;
       acc.completionTokens += s.completionTokens;
@@ -338,7 +288,7 @@ program
       const lines = content.split('\n');
       const last = lines[lines.length - 1];
       try {
-        const j = JSON.parse(last);
+        const j: Interaction = JSON.parse(last);
         console.log(`${chalk.bold(j.provider)} ${chalk.gray(j.timestamp)} id=${j.requestId} model=${j.model} tokens=${j.totalTokens} cost=$${(j.costUSD||0).toFixed(4)}`);
       } catch {
         console.log(last);
@@ -387,7 +337,14 @@ program
 
     const fileContent = fs.readFileSync(logFilePath, 'utf8');
     const lines = fileContent.trim().split('\n');
-    const interactions = lines.map(line => JSON.parse(line)).filter(i => i.taskType === 'coding');
+    const interactions: Interaction[] = lines.map(line => {
+        try {
+            return JSON.parse(line);
+        } catch (error) {
+            console.warn(`Skipping invalid log entry: ${line}`);
+            return null;
+        }
+    }).filter((interaction): interaction is Interaction => interaction !== null);
 
     if (interactions.length === 0) {
       console.log(chalk.yellow('No coding interactions found. Code analysis requires coding requests to the proxy.'));
@@ -397,7 +354,7 @@ program
     console.log(chalk.bold.underline('AI Code Quality Analysis'));
 
     // Language distribution
-    const langStats = interactions.reduce((acc: any, i: any) => {
+    const langStats = interactions.reduce((acc: Record<string, number>, i: Interaction) => {
       const lang = i.codeQualityMetrics?.language || 'unknown';
       if (!acc[lang]) acc[lang] = 0;
       acc[lang]++;
@@ -413,7 +370,7 @@ program
     const qualityRanges = { excellent: 0, good: 0, fair: 0, poor: 0 };
     const effectivenessRanges = { excellent: 0, good: 0, fair: 0, poor: 0 };
 
-    interactions.forEach((i: any) => {
+    interactions.forEach((i: Interaction) => {
       const q = i.codeQualityScore || 0;
       const e = i.effectivenessScore || 0;
 
@@ -441,25 +398,25 @@ program
     console.log(chalk.red(`  Poor (0-59): ${effectivenessRanges.poor}`));
 
     // Recent examples with low scores
-    const lowQuality = interactions.filter((i: any) => (i.codeQualityScore || 0) < 70).slice(-3);
+    const lowQuality = interactions.filter((i: Interaction) => (i.codeQualityScore || 0) < 70).slice(-3);
     if (lowQuality.length > 0) {
       console.log(chalk.bold('\n🔍 Recent Low-Quality Code Examples:'));
-      lowQuality.forEach((i: any, idx: number) => {
+      lowQuality.forEach((i: Interaction, idx: number) => {
         console.log(`\n${idx + 1}. Quality: ${i.codeQualityScore}/100${i.effectivenessScore ? ` | Effectiveness: ${i.effectivenessScore}/100` : ''}`);
         console.log(`   Provider: ${i.provider} | Model: ${i.model}`);
         if (i.userPrompt) {
           const prompt = i.userPrompt.substring(0, 100);
           console.log(`   Prompt: ${prompt}${i.userPrompt.length > 100 ? '...' : ''}`);
         }
-        if (i.codeQualityMetrics?.potentialIssues?.length > 0) {
+        if (i.codeQualityMetrics && i.codeQualityMetrics.potentialIssues && i.codeQualityMetrics.potentialIssues.length > 0) {
           console.log(`   Issues: ${i.codeQualityMetrics.potentialIssues.join(', ')}`);
         }
       });
     }
 
     // Improvement suggestions
-    const avgQuality = interactions.reduce((sum: number, i: any) => sum + (i.codeQualityScore || 0), 0) / interactions.length;
-    const avgEffectiveness = interactions.reduce((sum: number, i: any) => sum + (i.effectivenessScore || 0), 0) / interactions.length;
+    const avgQuality = interactions.reduce((sum: number, i: Interaction) => sum + (i.codeQualityScore || 0), 0) / interactions.length;
+    const avgEffectiveness = interactions.reduce((sum: number, i: Interaction) => sum + (i.effectivenessScore || 0), 0) / interactions.length;
 
     console.log(chalk.bold('\n💡 Improvement Suggestions:'));
     if (avgQuality < 70) {
@@ -477,6 +434,14 @@ program
     }
 
     console.log(`\n${chalk.gray('Total coding interactions analyzed: ' + interactions.length)}`);
+  });
+
+program
+  .command('login')
+  .description('Authenticate with your TokNxr account')
+  .action(async () => {
+    console.log(chalk.blue('Starting CLI authentication process...'));
+    await login();
   });
 
 program.parse(process.argv);

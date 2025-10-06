@@ -1,5 +1,5 @@
-import fs from 'node:fs';
-import path from 'node:path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import axios from 'axios';
 
 export interface BudgetsPolicy {
@@ -15,7 +15,8 @@ export function loadPolicy(cwd: string = process.cwd()): BudgetsPolicy | null {
   try {
     const raw = fs.readFileSync(policyPath, 'utf8');
     return JSON.parse(raw) as BudgetsPolicy;
-  } catch {
+  } catch (error) {
+    console.error('Error loading policy file:', error);
     return null;
   }
 }
@@ -37,7 +38,9 @@ export function computeMonthlySpend(logFilePath: string, monthKey: string) {
       const cost = Number(j.costUSD || 0);
       sums.total += cost;
       sums.byProvider[j.provider] = (sums.byProvider[j.provider] || 0) + cost;
-    } catch {}
+    } catch (error) {
+        console.warn('Skipping invalid log entry in policy check', error);
+    }
   }
   return sums;
 }
@@ -45,6 +48,8 @@ export function computeMonthlySpend(logFilePath: string, monthKey: string) {
 export async function sendBudgetAlert(webhookUrl: string, payload: any) {
   try {
     await axios.post(webhookUrl, payload, { timeout: 5000 });
-  } catch {}
+  } catch (error) {
+    console.error('Error sending budget alert:', error);
+  }
 }
 
