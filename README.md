@@ -1,6 +1,6 @@
 # TokNxr
 
-[![License](https://img.shields.io/github/license/yourusername/toknxr)](https://github.com/yourusername/toknxr/blob/main/LICENSE)
+[![License](https://img.shields.io/github/license/Radix-Obsidian/toknxr)](https://github.com/Radix-Obsidian/toknxr/blob/main/LICENSE)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)](https://www.typescriptlang.org/)
 
@@ -22,7 +22,7 @@ TokNxr is an open-source AI effectiveness & code quality analysis system that tr
 #### Option 1: Clone and Run
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/toknxr.git
+git clone https://github.com/Radix-Obsidian/toknxr.git
 cd toknxr
 
 # Install dependencies
@@ -68,7 +68,7 @@ supabase start       # Supabase local development (in another terminal)
 
 - **Beautiful Analytics**: Modern React dashboard with Tailwind CSS
 - **Team Management**: Organizations and project tracking
-- **Real-time Updates**: Live data sync with Firebase
+- **Real-time Updates**: Live data sync with Supabase
 - **Mobile-First**: Responsive design for all devices
 
 ## 🔧 Getting Started
@@ -185,7 +185,7 @@ npm install
 
 # Set up environment variables
 cp .env.example .env.local
-# Edit .env.local with your Firebase credentials
+# Edit .env.local with your Supabase credentials
 
 # Start development servers
 npm run dev          # Next.js app (http://localhost:3000)
@@ -245,13 +245,15 @@ toknxr/
 │   ├── app/                       # App Router pages
 │   ├── components/                # React components
 │   ├── lib/                       # Utilities and configurations
-│   └── dataconnect-generated/     # Generated GraphQL client
+│   └── supabase.ts                # Supabase client configuration
 ├── toknxr-cli/                    # Standalone CLI tool
 │   ├── src/                       # CLI source code
 │   ├── toknxr.config.json         # Provider configurations
 │   └── interactions.log           # Local interaction storage
-├── functions/                     # Firebase Functions
-├── dataconnect/                   # GraphQL schema and queries
+├── supabase/                      # Supabase configuration
+│   ├── config.toml                # Supabase project config
+│   ├── migrations/                # Database migrations
+│   └── functions/                 # Edge functions
 └── public/                        # Static assets
 ```
 
@@ -272,7 +274,7 @@ We welcome contributions! TokNxr is open source and community-driven.
 
 ```bash
 # Clone your fork
-git clone https://github.com/yourusername/toknxr.git
+git clone https://github.com/Radix-Obsidian/toknxr.git
 cd toknxr
 
 # Install dependencies
@@ -307,7 +309,7 @@ npm run start --prefix toknxr-cli  # CLI proxy
 ## 🔒 Security
 
 - **Local-First**: All sensitive data stays on your machine by default
-- **Optional Cloud Sync**: Choose what data to sync to Firebase
+- **Optional Cloud Sync**: Choose what data to sync to Supabase
 - **API Key Protection**: Environment variables and secure storage
 - **Open Source**: Full transparency in code and security practices
 
@@ -333,9 +335,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- **GitHub Issues**: [Report bugs or request features](https://github.com/yourusername/toknxr/issues)
-- **Discussions**: [Community discussions and Q&A](https://github.com/yourusername/toknxr/discussions)
-- **Documentation**: [Full documentation and guides](https://github.com/yourusername/toknxr/wiki)
+- **GitHub Issues**: [Report bugs or request features](https://github.com/Radix-Obsidian/toknxr/issues)
+- **Discussions**: [Community discussions and Q&A](https://github.com/Radix-Obsidian/toknxr/discussions)
+- **Documentation**: [Full documentation and guides](https://github.com/Radix-Obsidian/toknxr/wiki)
 
 ---
 
