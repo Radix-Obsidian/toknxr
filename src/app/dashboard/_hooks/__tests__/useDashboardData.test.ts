@@ -4,7 +4,7 @@ import { useAuth } from '../../../hooks/useAuth';
 import { supabase } from '../../../supabase';
 
 // Mock Supabase
-jest.mock('@/supabase', () => ({
+jest.mock('../../../supabase', () => ({
   supabase: {
     from: jest.fn().mockReturnThis(),
     select: jest.fn().mockReturnThis(),
@@ -14,7 +14,7 @@ jest.mock('@/supabase', () => ({
 }));
 
 // Mock useAuth hook
-jest.mock('@/hooks/useAuth');
+jest.mock('../../../hooks/useAuth');
 const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
 
 describe('useDashboardData', () => {

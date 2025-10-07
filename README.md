@@ -20,6 +20,7 @@ TokNxr is an open-source AI effectiveness & code quality analysis system that tr
 ### Quick Start
 
 #### Option 1: Clone and Run
+
 ```bash
 # Clone the repository
 git clone https://github.com/Radix-Obsidian/toknxr.git
@@ -28,302 +29,39 @@ cd toknxr
 # Install dependencies
 npm install
 
-# Install CLI dependencies
-npm install --prefix toknxr-cli
+# Install Firebase Functions dependencies
+cd functions && npm install && cd ..
 
-# Start the CLI proxy
-npm run start --prefix toknxr-cli
+# Set up environment variables
+cp .env.example .env.local
+# Edit .env.local with your Firebase credentials
 ```
-
-#### Option 2: Web Dashboard
-```bash
-# Start development environment
-npm run dev          # Next.js web app
-supabase start       # Supabase local development (in another terminal)
-```
-
-### System Requirements
-
-- Node.js version 20 or higher
-- macOS, Linux, or Windows
-- Supabase CLI (for database management)
-
-## 🎯 Key Features
-
-### AI Token Tracking & Analysis
-
-- **Multi-Provider Support**: Track usage across OpenAI, Gemini, Anthropic, Ollama
-- **Real-time Monitoring**: Proxy server intercepts and logs all AI requests
-- **Cost Analysis**: Detailed cost breakdowns and budget tracking
-- **Usage Analytics**: Comprehensive stats and trends
-
-### Code Quality Analysis (NEW!)
-
-- **Quality Scoring** (0-100): Syntax validity, readability, structure
-- **Effectiveness Scoring** (0-100): How well AI understood your prompt
-- **Language Support**: JavaScript, TypeScript, Python with extensible framework
-- **Hallucination Detection**: Identify potential AI-generated issues
-
-### Web Dashboard
-
-- **Beautiful Analytics**: Modern React dashboard with Tailwind CSS
-- **Team Management**: Organizations and project tracking
-- **Real-time Updates**: Live data sync with Supabase
-- **Mobile-First**: Responsive design for all devices
-
-
-✅ **Smart Features**:
-
-- Automatic provider routing
-- Budget enforcement with alerts
-- Comprehensive logging
-- Web dashboard for visualization
-
-## 🎭 See It In Action - Complete User Journey
-
-### **Role-Play: Developer workday - Alex wants to track AI usage and optimize costs**
-
-```bash
-# Terminal opens - Alex sees welcome screen
-$ toknxr
-
-  ████████╗  ██████╗   ██╗  ██╗ ███╗   ██╗ ██╗  ██╗ ██████╗
-  ╚══██╔══╝ ██╔═══██╗ ██║ ██╔╝ ████╗  ██║ ╚██╗██╔╝ ██╔══██╗
-     ██║    ██║   ██║ █████╔╝  ██╔██╗ ██║  ╚███╔╝  ██████╔╝
-     ██║    ██║   ██║ ██╔═██╗  ██║╚██╗██║  ██╔██╗  ██╔══██╗
-     ██║    ╚██████╔╝ ██║  ██╗ ██║ ╚████║ ██╔╝ ██╗ ██║  ██║
-     ╚═╝     ╚═════╝  ╚═╝  ╚═╝ ╚═╝  ╚═══╝ ╚═╝  ╚═╝ ╚═╝  ╚═╝
-
-🐑 Powered by Golden Sheep AI
-```
-
-**Alex (thinking):** "Okay, I need to set up tracking for my OpenAI and Google AI usage. Let me configure this."
-
-```bash
-# 1. Initialize project with config and policies
-$ toknxr init
-
-Created .env
-Created toknxr.config.json
-Created toknxr.policy.json
-
-$ cat toknxr.config.json
-{
-  "providers": [
-    {
-      "name": "Gemini-Pro",
-      "routePrefix": "/gemini",
-      "targetUrl": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
-      "apiKeyEnvVar": "GEMINI_API_KEY",
-      "authHeader": "x-goog-api-key",
-      "tokenMapping": {
-        "prompt": "usageMetadata.promptTokenCount",
-        "completion": "usageMetadata.candidatesTokenCount",
-        "total": "usageMetadata.totalTokenCount"
-      }
-    }
-  ]
-}
-
-# 2. Alex sets up API key
-$ echo "GEMINI_API_KEY=your_actual_key_here" >> .env
-# 3. Sets budget policies
-$ vim toknxr.policy.json
-# Edits: monthlyUSD: 100, perProviderMonthlyUSD: {"Gemini-Pro": 50}
-```
-
-**Alex:** "Great! Now I need to authenticate so my data syncs to the dashboard."
-
-```bash
-# 4. Login to web dashboard
-$ toknxr login
-
-[Auth] Opening https://your-toknxr-app.com/cli-login
-[Auth] Please authenticate in your browser...
-
-# Alex opens browser, logs in with email/password
-# CLI detects successful auth, stores token locally
-
-[Auth] ✅ Successfully authenticated! You can now sync data to your dashboard.
-```
-
-**Alex:** "Perfect! Now let me start tracking my AI usage automatically."
-
-```bash
-# 5. Start the proxy server
-$ toknxr start
-
-[Proxy] Server listening on http://localhost:8788
-[Proxy] Loaded providers: Gemini-Pro
-[Proxy] ⏳ Ready to intercept and analyze your AI requests...
-
-🐑 TokNXR is watching your AI usage...
-```
-
-**Alex (working on a coding task):** "Let me ask Gemini to write some code for me."
-
-````bash
-# 6. Alex uses their normal AI workflow, but points to proxy
-$ curl "http://localhost:8788/gemini" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "contents": [{
-      "parts": [{"text": "Write a Python function to calculate fibonacci numbers efficiently"}]
-    }]
-  }'
-
-# 7. Proxy intercepts, forwards to Gemini, analyzes response
-[Proxy] Received request: POST /gemini | requestId=1234-abcd
-[Proxy] Matched provider: Gemini-Pro
-[Proxy] Forwarding request to https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent
-[Proxy] Running AI analysis pipeline... Confidence: 5.2%, Likely: false
-[Proxy] Running code quality analysis... Quality: 87/100, Effectiveness: 92/100
-[Proxy] Interaction successfully logged to interactions.log
-
-# Returns the actual AI response to Alex's curl command
-{
-  "candidates": [{
-    "content": {
-      "parts": [{
-        "text": "def fibonacci(n, memo={}):\n    if n in memo: return memo[n]\n    if n <= 1: return n\n    memo[n] = fibonacci(n-1, memo) + fibonacci(n-2, memo)\n    return memo[n]"
-      }]
-    },
-    "usageMetadata": {
-      "promptTokenCount": 45,
-      "candidatesTokenCount": 78,
-      "totalTokenCount": 123
-    }
-  }]
-}```
-
-**Alex:** "Nice! The proxy automatically captured that interaction. Let me check the local analytics."
-
-```bash
-# 8. Check local stats and analytics
-$ toknxr stats
-
-Token Usage Statistics
-
-Provider: Gemini-Pro
-  Total Requests: 1
-  Total Tokens: 123
-    - Prompt Tokens: 45
-    - Completion Tokens: 78
-  Cost (USD): $0.0005
-
-Grand Totals
-  Requests: 1
-  Tokens: 123
-    - Prompt: 45
-    - Completion: 78
-  Cost (USD): $0.0005
-
-Code Quality Insights:
-  Coding Requests: 1
-  Avg Code Quality: 87/100
-  Avg Effectiveness: 92/100
-
-  ✅ Your AI coding setup is working well
-````
-
-**Alex:** "Sweet! Let me see more detailed analysis."
-
-```bash
-# 9. Deep dive into code analysis
-$ toknxr code-analysis
-
-AI Code Quality Analysis
-
-Language Distribution:
-  python: 1 requests
-
-Code Quality Scores:
-  Excellent (90-100): 0
-  Good (75-89): 1
-  Fair (60-74): 0
-  Poor (0-59): 0
-
-Effectiveness Scores (Prompt ↔ Result):
-  Excellent (90-100): 1
-
-Recent Low-Quality Code Examples:
-  (none - everything looks good!)
-
-Improvement Suggestions:
-  💡 Great! Your AI coding setup is working well
-  💡 Consider establishing code review processes for edge cases
-```
-
-**Alex:** "Perfect! Now I want to sync this data to my web dashboard so my team can see it."
-
-```bash
-# 10. Sync local logs to Supabase dashboard
-$ toknxr sync
-
-[Sync] Reading 1 interactions from interactions.log
-[Sync] Analyzing interactions for quality insights
-[Sync] Preparing to sync 1 interactions to Supabase
-[Sync] Syncing interaction 1/1...
-[Sync] Successfully synced to dashboard
-[Sync] Data now available at https://your-toknxr-app.com/dashboard
-
-Synced 1 interactions to your dashboard ✅
-```
-
-**Alex opens dashboard:** "Let me check the web interface."
-
-### **Web Dashboard Results:**
-
-- **Stats Cards:** Total cost $0.0005, 1 interaction, 0% waste, 0% hallucination rate
-- **Charts:** Cost trends, quality scores over time
-- **Recent Interactions:** Shows the fibonacci function request with quality score
-- **Analysis:** "Great session! Low costs, high quality AI responses"
-
-**Alex:** "Excellent! I have full visibility into my AI usage. Let me work more and then check if there are any budget concerns."
-
-```bash
-# Alex works through the day, proxy tracks everything automatically
-
-# Later that afternoon...
-$ toknxr stats
-
-# Shows accumulated usage across the day
-# Alerts if approaching budget limits
-# Identifies patterns in AI effectiveness
-
-$ toknxr providers
-
-AI Provider Comparison
-
-🏢 Gemini-Pro:
-  Total Interactions: 47
-  Hallucination Rate: 3.2%
-  Avg Quality Score: 84/100
-  Avg Effectiveness: 89/100
-
-🏆 Performance Summary:
-  Best Provider: Gemini-Pro (84/100 quality)
-```
-
-**Alex (end of day):** "Wow! I've automatically tracked 47 AI interactions, analyzed code quality, caught some hallucinations early, and stayed under budget. I'll sync this to the team dashboard."
 
 ---
 
-## **🎭 The End Result:**
+## CLI Tool (`toknxr-cli`)
 
-✅ **Automatic tracking** of ALL AI usage (tokens, costs, quality)
-✅ **Real-time alerts** for budgets and hallucinations
-✅ **Team visibility** through synced dashboard
-✅ **Data-driven optimization** of AI workflows
-✅ **Cost control** and quality insights
+The `toknxr-cli` is a powerful, local-first tool for tracking token usage from any AI provider. It acts as a proxy server, intercepting your AI API requests, logging the token usage, and then forwarding the request to the actual provider.
 
-_The user became an **AI efficiency expert** without extra work - just normal development with automatic superpowers! 🦸‍♂️_
+### Core Features
 
-## 🔧 Getting Started
+- **Provider-Agnostic:** Track usage for any AI service (OpenAI, Gemini, Anthropic, Ollama, etc.) via a simple JSON configuration.
+- **Local-First:** All data is logged to a local `interactions.log` file. No cloud account needed.
+- **Simple Stats:** A built-in `stats` command provides a clean summary of your token usage by provider.
 
-### 1. Configure AI Providers
+### How it Works
 
-Edit `toknxr-cli/toknxr.config.json` to add your AI providers:
+1.  You configure your AI providers in `toknxr-cli/toknxr.config.json`.
+2.  You start the `toknxr-cli` proxy server.
+3.  You point your application's API requests to the local proxy server instead of the AI provider's URL.
+4.  The proxy logs the token usage from the response and then passes the response back to your application.
+5.  You can view your aggregated stats at any time.
+
+### Getting Started with the CLI
+
+**1. Configure Your Providers**
+
+Edit the `toknxr-cli/toknxr.config.json` file. Add the providers you want to track. You can define the `routePrefix` the proxy will listen on, the `targetUrl` of the real API, and how to map the token data from the provider's response.
 
 ```json
 {
@@ -370,14 +108,20 @@ Point your AI requests to the local proxy:
 
 ```javascript
 // Before
-const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
-  // your request
-});
+const response = await fetch(
+  'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
+  {
+    // your request
+  }
+);
 
 // After
-const response = await fetch('http://localhost:8787/gemini/v1beta/models/gemini-pro:generateContent', {
-  // same request - proxy handles the rest
-});
+const response = await fetch(
+  'http://localhost:8787/gemini/v1beta/models/gemini-pro:generateContent',
+  {
+    // same request - proxy handles the rest
+  }
+);
 ```
 
 ### 4. View Analytics
@@ -393,6 +137,7 @@ npm run cli --prefix toknxr-cli -- code-analysis
 ## 📊 CLI Commands
 
 ### Token Usage Analytics
+
 ```bash
 # View comprehensive usage stats
 npm run cli --prefix toknxr-cli -- stats
@@ -405,6 +150,7 @@ npm run cli --prefix toknxr-cli -- stats
 ```
 
 ### Code Quality Analysis
+
 ```bash
 # Deep code quality insights
 npm run cli --prefix toknxr-cli -- code-analysis
@@ -418,6 +164,7 @@ npm run cli --prefix toknxr-cli -- code-analysis
 ```
 
 ### Real-time Dashboard
+
 ```bash
 # Access web dashboard at http://localhost:8787/dashboard
 npm run start --prefix toknxr-cli
@@ -456,11 +203,13 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 ### Deployment
 
 #### Option 1: Vercel (Recommended)
+
 ```bash
 npm run deploy:vercel
 ```
 
 #### Option 2: Supabase Hosting
+
 ```bash
 supabase functions deploy
 ```
@@ -545,11 +294,13 @@ npm run start --prefix toknxr-cli  # CLI proxy
 ## 📚 Documentation
 
 ### Getting Started
+
 - **[Quick Start Guide](#getting-started)** - Get up and running quickly
 - **[Configuration Guide](#configure-ai-providers)** - Set up AI providers
 - **[CLI Commands](#cli-commands)** - Command reference
 
 ### Advanced Topics
+
 - **[Web Dashboard Setup](#web-dashboard)** - Deploy the analytics dashboard
 - **[Architecture Overview](#architecture)** - System design and components
 - **[Contributing Guide](#contributing)** - How to contribute to the project
@@ -572,21 +323,4 @@ npm run start --prefix toknxr-cli  # CLI proxy
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- **Supabase Team** - For the excellent PostgreSQL platform
-- **Next.js Team** - For the amazing React framework
-- **AI Provider Teams** - OpenAI, Google, Anthropic for their APIs
-- **Open Source Community** - For inspiration and contributions
-
-## 📞 Support
-
-- **GitHub Issues**: [Report bugs or request features](https://github.com/Radix-Obsidian/toknxr/issues)
-- **Discussions**: [Community discussions and Q&A](https://github.com/Radix-Obsidian/toknxr/discussions)
-- **Documentation**: [Full documentation and guides](https://github.com/Radix-Obsidian/toknxr/wiki)
-
----
-
-Built with ❤️ by the open source community
+Private - All rights reserved
