@@ -1,3 +1,5 @@
+import { pluginManager } from './plugin-system.js';
+
 export interface CodeQualityMetrics {
   syntaxValid: boolean;
   linesOfCode: number;
@@ -9,6 +11,12 @@ export interface CodeQualityMetrics {
   potentialIssues: string[];
   language?: string;
   framework?: string;
+
+  // Plugin-extensible fields
+  pluginMetrics?: Record<string, unknown>;
+  securityScore?: number;
+  performanceScore?: number;
+  maintainabilityScore?: number;
 }
 
 export interface EffectivenessScore {
@@ -17,6 +25,11 @@ export interface EffectivenessScore {
   codeCorrectness: number; // Basic syntax and structure correctness
   codeEfficiency: number; // Potential performance indicators
   overallEffectiveness: number; // Combined score 0-100
+
+  // Plugin-extensible fields
+  hallucinationRisk?: number;
+  promptAlignment?: number;
+  contextUnderstanding?: number;
 }
 
 /**
@@ -73,6 +86,46 @@ export function analyzeCodeQuality(code: string, language?: string): CodeQuality
       metrics.estimatedReadability = calculatePythonReadability(code);
       break;
 
+    case 'go':
+      metrics.hasFunctions = /func\s+\w+\(/.test(code);
+      metrics.hasClasses = /type\s+\w+\s+struct/.test(code);
+      metrics.hasTests = /func\s+Test\w+/.test(code);
+
+      metrics.syntaxValid = validateGo(code);
+
+      metrics.estimatedReadability = calculateGoReadability(code);
+      break;
+
+    case 'rust':
+      metrics.hasFunctions = /fn\s+\w+\(/.test(code);
+      metrics.hasClasses = /(struct|enum)\s+\w+/.test(code);
+      metrics.hasTests = /#\[test\]/.test(code);
+
+      metrics.syntaxValid = validateRust(code);
+
+      metrics.estimatedReadability = calculateRustReadability(code);
+      break;
+
+    case 'java':
+      metrics.hasFunctions = /public\s+(\w+)\s+\w+\(/.test(code);
+      metrics.hasClasses = /public\s+class\s+\w+/.test(code);
+      metrics.hasTests = /@Test/.test(code);
+
+      metrics.syntaxValid = validateJava(code);
+
+      metrics.estimatedReadability = calculateJavaReadability(code);
+      break;
+
+    case 'cpp':
+      metrics.hasFunctions = /(\w+)\s+\w+\(/.test(code) && !/class\s+/.test(code);
+      metrics.hasClasses = /class\s+\w+/.test(code);
+      metrics.hasTests = /(TEST|TEST_F)/.test(code);
+
+      metrics.syntaxValid = validateCpp(code);
+
+      metrics.estimatedReadability = calculateCppReadability(code);
+      break;
+
     default:
       metrics.potentialIssues.push('Language not recognized for detailed analysis');
   }
@@ -86,7 +139,14 @@ export function analyzeCodeQuality(code: string, language?: string): CodeQuality
     metrics.potentialIssues.push('Potential syntax errors detected');
   }
 
-  return metrics;
+  // Apply plugin enhancements
+  try {
+    const enhancedMetrics = pluginManager.analyzeWithPlugins(code, metrics);
+    return enhancedMetrics;
+  } catch (error) {
+    console.warn('Plugin analysis failed, returning base metrics:', error);
+    return metrics;
+  }
 }
 
 /**
@@ -125,7 +185,14 @@ export function scoreEffectiveness(userPrompt: string, aiResponse: string, extra
     (score.codeEfficiency * 0.2)
   );
 
-  return score;
+  // Apply plugin enhancements for effectiveness scoring
+  try {
+    const enhancedScore = pluginManager.scoreEffectivenessWithPlugins(userPrompt, aiResponse, score, extractedCode);
+    return enhancedScore;
+  } catch (error) {
+    console.warn('Plugin effectiveness scoring failed, returning base score:', error);
+    return score;
+  }
 }
 
 /**
@@ -163,14 +230,32 @@ export function extractCodeFromResponse(response: string): { code: string; langu
  */
 function detectLanguage(code: string): string | undefined {
   if (/(?:import|export|function|const|let|var)\s+/.test(code)) {
-    return code.includes('interface') || code.includes(': string') ? 'typescript' : 'javascript';
+    return code.includes('interface') || code.includes(': string') || code.includes('<') ? 'typescript' : 'javascript';
   }
 
   if (/def\s+|import\s+|class\s+/.test(code) && /:/.test(code)) {
     return 'python';
   }
 
-  // Add more language detection as needed...
+  // Go detection
+  if (/package\s+\w+|import\s+\(|func\s+\w+\(/.test(code) && /\.\w+\(/.test(code)) {
+    return 'go';
+  }
+
+  // Rust detection
+  if (/fn\s+\w+|let\s+mut|println!|use\s+std::/.test(code) && /::/.test(code)) {
+    return 'rust';
+  }
+
+  // Java detection
+  if (/public\s+class|import\s+java\.|public\s+static\s+void\s+main/.test(code) && /System\.out\.println/.test(code)) {
+    return 'java';
+  }
+
+  // C++ detection
+  if (/#include\s+<|std::|cout\s+<<|int\s+main\(/.test(code) && /namespace\s+std/.test(code)) {
+    return 'cpp';
+  }
 
   return undefined;
 }
@@ -362,4 +447,271 @@ function estimateEfficiencyScore(code: string, metrics: CodeQualityMetrics): num
   }
 
   return Math.max(0, Math.min(100, score));
+}
+
+/**
+ * Basic Go validation
+ */
+function validateGo(code: string): boolean {
+  try {
+    // Basic bracket matching for Go
+    const brackets = { '(': 0, '{': 0 };
+    let inString = false;
+    let inComment = false;
+
+    for (let i = 0; i < code.length; i++) {
+      const char = code[i];
+      const nextChar = code[i + 1] || '';
+
+      // Handle strings
+      if (char === '"' && (i === 0 || code[i - 1] !== '\\')) {
+        inString = !inString;
+        continue;
+      }
+      if (inString) continue;
+
+      // Handle comments
+      if (char === '/' && nextChar === '/') {
+        inComment = true;
+        continue;
+      }
+      if (char === '\n') {
+        inComment = false;
+        continue;
+      }
+      if (inComment) continue;
+
+      if (char === '(') brackets['(']++;
+      if (char === ')') brackets['(']--;
+      if (char === '{') brackets['{']++;
+      if (char === '}') brackets['{']--;
+
+      if (brackets['('] < 0 || brackets['{'] < 0) {
+        return false;
+      }
+    }
+    return brackets['('] === 0 && brackets['{'] === 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Basic Rust validation
+ */
+function validateRust(code: string): boolean {
+  try {
+    // Basic bracket matching for Rust
+    const brackets = { '(': 0, '[': 0, '{': 0 };
+    let inString = false;
+    let inChar = false;
+
+    for (let i = 0; i < code.length; i++) {
+      const char = code[i];
+
+      // Handle strings and characters
+      if (char === '"' && (i === 0 || code[i - 1] !== '\\')) {
+        inString = !inString;
+        continue;
+      }
+      if (char === "'" && code[i + 1] && code[i + 1] !== "\\") {
+        inChar = !inChar;
+        continue;
+      }
+      if (inString || inChar) continue;
+
+      if (char === '(') brackets['(']++;
+      if (char === ')') brackets['(']--;
+      if (char === '[') brackets['[']++;
+      if (char === ']') brackets['[']--;
+      if (char === '{') brackets['{']++;
+      if (char === '}') brackets['{']--;
+
+      if (brackets['('] < 0 || brackets['['] < 0 || brackets['{'] < 0) {
+        return false;
+      }
+    }
+    return brackets['('] === 0 && brackets['['] === 0 && brackets['{'] === 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Basic Java validation
+ */
+function validateJava(code: string): boolean {
+  try {
+    // Basic bracket matching for Java
+    const brackets = { '(': 0, '[': 0, '{': 0 };
+    let inString = false;
+
+    for (let i = 0; i < code.length; i++) {
+      const char = code[i];
+
+      // Handle strings
+      if (char === '"' && (i === 0 || code[i - 1] !== '\\')) {
+        inString = !inString;
+        continue;
+      }
+      if (inString) continue;
+
+      if (char === '(') brackets['(']++;
+      if (char === ')') brackets['(']--;
+      if (char === '[') brackets['[']++;
+      if (char === ']') brackets['[']--;
+      if (char === '{') brackets['{']++;
+      if (char === '}') brackets['{']--;
+
+      if (brackets['('] < 0 || brackets['['] < 0 || brackets['{'] < 0) {
+        return false;
+      }
+    }
+    return brackets['('] === 0 && brackets['['] === 0 && brackets['{'] === 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Basic C++ validation
+ */
+function validateCpp(code: string): boolean {
+  try {
+    // Basic bracket matching for C++
+    const brackets = { '(': 0, '[': 0, '{': 0 };
+    let inString = false;
+    let inComment = false;
+
+    for (let i = 0; i < code.length; i++) {
+      const char = code[i];
+      const nextChar = code[i + 1] || '';
+
+      // Handle strings
+      if (char === '"' && (i === 0 || code[i - 1] !== '\\')) {
+        inString = !inString;
+        continue;
+      }
+      if (inString) continue;
+
+      // Handle comments
+      if (char === '/' && (nextChar === '/' || nextChar === '*')) {
+        inComment = true;
+        if (nextChar === '*') {
+          // Multi-line comment
+          const endComment = code.indexOf('*/', i + 2);
+          if (endComment !== -1) {
+            i = endComment + 1;
+          }
+          continue;
+        }
+      }
+      if (inComment && char === '\n') {
+        inComment = false;
+      }
+      if (inComment) continue;
+
+      if (char === '(') brackets['(']++;
+      if (char === ')') brackets['(']--;
+      if (char === '[') brackets['[']++;
+      if (char === ']') brackets['[']--;
+      if (char === '{') brackets['{']++;
+      if (char === '}') brackets['{']--;
+
+      if (brackets['('] < 0 || brackets['['] < 0 || brackets['{'] < 0) {
+        return false;
+      }
+    }
+    return brackets['('] === 0 && brackets['['] === 0 && brackets['{'] === 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Calculate readability for Go
+ */
+function calculateGoReadability(code: string): number {
+  let score = 6; // Go is generally readable
+
+  // Length factors
+  if (code.length > 2000) score -= 2;
+  if (code.split('\n').length > 50) score -= 1;
+
+  // Good practices
+  if (code.includes('//')) score += 1; // Has comments
+  if (/^\s*\w+\./.test(code)) score += 0.5; // Uses qualified names
+  if (/err\s*!=\s*nil/.test(code)) score += 0.5; // Error handling
+
+  // Poor practices
+  if (/\w+\s*:=\s*[^;]*;/.test(code)) score -= 1; // Short variable declarations with semicolon
+
+  return Math.max(1, Math.min(10, score));
+}
+
+/**
+ * Calculate readability for Rust
+ */
+function calculateRustReadability(code: string): number {
+  let score = 5; // Rust can be complex but expressive
+
+  // Length factors
+  if (code.length > 2500) score -= 2;
+  if (code.split('\n').length > 60) score -= 1;
+
+  // Good practices
+  if (code.includes('//')) score += 1; // Has comments
+  if (/let\s+/.test(code)) score += 0.5; // Explicit variable declarations
+  if (/->/.test(code)) score += 0.5; // Return type annotations
+  if (/\?/m.test(code)) score += 0.5; // Error propagation
+
+  // Code organization
+  if (/impl\s+\w+/.test(code)) score += 0.5; // Has implementations
+  if (/trait\s+\w+/.test(code)) score += 0.5; // Has traits
+
+  return Math.max(1, Math.min(10, score));
+}
+
+/**
+ * Calculate readability for Java
+ */
+function calculateJavaReadability(code: string): number {
+  let score = 4; // Java can be verbose
+
+  // Length factors
+  if (code.length > 3000) score -= 2;
+  if (code.split('\n').length > 70) score -= 1;
+
+  // Good practices
+  if (code.includes('//') || code.includes('/*')) score += 1; // Has comments
+  if (/public\s+class\s+\w+/.test(code)) score += 0.5; // Proper class declaration
+  if (/throws\s+\w+/.test(code)) score += 0.5; // Exception declarations
+
+  // Code organization
+  if (/@Override/.test(code)) score += 0.5; // Uses annotations properly
+  if (/import\s+java\./.test(code)) score += 0.5; // Proper imports
+
+  return Math.max(1, Math.min(10, score));
+}
+
+/**
+ * Calculate readability for C++
+ */
+function calculateCppReadability(code: string): number {
+  let score = 3; // C++ can be complex
+
+  // Length factors
+  if (code.length > 2500) score -= 2;
+  if (code.split('\n').length > 80) score -= 1;
+
+  // Good practices
+  if (code.includes('//')) score += 1; // Has comments
+  if (/std::/.test(code)) score += 0.5; // Uses standard library
+  if (/const\s+/.test(code)) score += 0.5; // Uses const
+
+  // Code organization
+  if (/namespace\s+\w+/.test(code)) score += 0.5; // Uses namespaces
+  if (/#include\s+<[\w\/]+>/.test(code)) score += 0.5; // Proper includes
+
+  return Math.max(1, Math.min(10, score));
 }

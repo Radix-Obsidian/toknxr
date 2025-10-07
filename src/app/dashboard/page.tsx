@@ -55,7 +55,7 @@ export default function DashboardPage() {
             </div>
           )}
 
-          <StatsCards stats={stats} />
+          <StatsCards stats={stats} interactions={interactions} />
           <InteractionTracker onInteractionTracked={refetch} />
           <ModelComparisonTable interactions={interactions} className="mt-8" />
           <InteractionHistory interactions={interactions} />

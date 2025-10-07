@@ -1,0 +1,5 @@
+npm warn config ignoring workspace config at /Users/saintaugustine/ToknXR-CLI/toknxr-cli/.npmrc
+
+> @goldensheepai/toknxr-cli@0.2.0 build
+> tsc
+

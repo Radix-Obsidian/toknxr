@@ -1,7 +1,7 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { useDashboardData } from '../useDashboardData';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/supabase';
+import { useAuth } from '../../../hooks/useAuth';
+import { supabase } from '../../../supabase';
 
 // Mock Supabase
 jest.mock('@/supabase', () => ({

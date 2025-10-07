@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/supabase';
-import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '../../../supabase';
+import { useAuth } from '../../../hooks/useAuth';
 import { DashboardStats, Interaction } from '../_types/dashboard';
 
 export function useDashboardData() {
@@ -30,7 +30,12 @@ export function useDashboardData() {
         .order('timestamp', { ascending: false });
 
       if (error) {
-        console.error('Error fetching interactions:', error);
+        console.error('Error fetching interactions:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
         setLoading(false);
         return;
       }
