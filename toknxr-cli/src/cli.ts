@@ -444,4 +444,235 @@ program
     await login();
   });
 
+// Import required modules for new AI analysis commands
+import { hallucinationDetector } from './hallucination-detector.js';
+import { analyzeCodeQuality, scoreEffectiveness, extractCodeFromResponse } from './code-analysis.js';
+import { aiAnalytics } from './ai-analytics.js';
+
+program
+  .command('analyze')
+  .description('Analyze an AI response for hallucinations and quality issues')
+  .argument('<prompt>', 'The original user prompt')
+  .argument('<response>', 'The AI response to analyze')
+  .option('-c, --context <context...>', 'Additional context messages')
+  .action((prompt, response, options) => {
+    console.log(chalk.bold.blue('🔍 AI Response Analysis'));
+    console.log(chalk.gray('━'.repeat(50)));
+
+    // Hallucination analysis
+    const hallucinationResult = hallucinationDetector.detectHallucination(
+      prompt,
+      response,
+      options.context
+    );
+
+    console.log(chalk.bold('\n🎯 Hallucination Detection:'));
+    console.log(`  Status: ${hallucinationResult.isLikelyHallucination ? chalk.red('⚠️  LIKELY HALLUCINATION') : chalk.green('✅ Clean Response')}`);
+    console.log(`  Confidence: ${hallucinationResult.confidence.toFixed(1)}%`);
+    console.log(`  Severity: ${hallucinationResult.severity.toUpperCase()}`);
+
+    if (hallucinationResult.issues.length > 0) {
+      console.log(chalk.yellow('\n⚡ Issues Found:'));
+      hallucinationResult.issues.forEach(issue => {
+        console.log(`  • ${issue}`);
+      });
+    }
+
+    // Extract and analyze code if present
+    const extractedCode = extractCodeFromResponse(response);
+    if (extractedCode) {
+      console.log(chalk.bold('\n💻 Code Quality Analysis:'));
+      const codeMetrics = analyzeCodeQuality(extractedCode.code, extractedCode.language);
+
+      console.log(`  Language: ${codeMetrics.language || 'Unknown'}`);
+      console.log(`  Lines of Code: ${codeMetrics.linesOfCode}`);
+      console.log(`  Complexity: ${codeMetrics.complexity.toFixed(1)}/10`);
+      console.log(`  Readability: ${codeMetrics.estimatedReadability}/10`);
+      console.log(`  Syntax Valid: ${codeMetrics.syntaxValid ? chalk.green('✅') : chalk.red('❌')}`);
+
+      if (codeMetrics.potentialIssues.length > 0) {
+        console.log(chalk.yellow('\n⚠️  Potential Issues:'));
+        codeMetrics.potentialIssues.forEach(issue => {
+          console.log(`  • ${issue}`);
+        });
+      }
+    }
+
+    // Effectiveness scoring
+    const effectiveness = scoreEffectiveness(prompt, response, extractedCode?.code);
+    console.log(chalk.bold('\n⚖️  Effectiveness Score:'));
+    console.log(`  Overall: ${chalk.cyan(`${effectiveness.overallEffectiveness}/100`)}`);
+    console.log(`  Prompt Match: ${effectiveness.promptClarityMatch.toFixed(1)}%`);
+    console.log(`  Completeness: ${effectiveness.codeCompleteness.toFixed(1)}%`);
+    console.log(`  Correctness: ${effectiveness.codeCorrectness.toFixed(1)}%`);
+  });
+
+program
+  .command('quality')
+  .description('Analyze code quality metrics')
+  .argument('<code>', 'Code to analyze')
+  .option('-l, --language <lang>', 'Programming language')
+  .action((code, options) => {
+    console.log(chalk.bold.blue('💻 Code Quality Analysis'));
+    console.log(chalk.gray('━'.repeat(50)));
+
+    const metrics = analyzeCodeQuality(code, options.language);
+
+    console.log(`\n📋 Basic Metrics:`);
+    console.log(`  Language: ${metrics.language || 'Unknown'}`);
+    console.log(`  Lines of Code: ${metrics.linesOfCode}`);
+    console.log(`  Complexity: ${chalk.cyan(`${metrics.complexity.toFixed(1)}/10`)}`);
+    console.log(`  Readability: ${chalk.cyan(`${metrics.estimatedReadability}/10`)}`);
+    console.log(`  Syntax Valid: ${metrics.syntaxValid ? chalk.green('✅') : chalk.red('❌')}`);
+
+    console.log(`\n🏗️  Structure:`);
+    console.log(`  Has Functions: ${metrics.hasFunctions ? chalk.green('✅') : chalk.red('❌')}`);
+    console.log(`  Has Classes: ${metrics.hasClasses ? chalk.green('✅') : chalk.red('❌')}`);
+    console.log(`  Has Tests: ${metrics.hasTests ? chalk.green('✅') : chalk.red('❌')}`);
+
+    if (metrics.potentialIssues.length > 0) {
+      console.log(chalk.yellow('\n⚠️  Issues Found:'));
+      metrics.potentialIssues.forEach(issue => {
+        console.log(`  • ${issue}`);
+      });
+    } else {
+      console.log(chalk.green('\n✨ No issues detected!'));
+    }
+  });
+
+program
+  .command('effectiveness')
+  .description('Score AI response effectiveness')
+  .argument('<prompt>', 'Original user prompt')
+  .argument('<response>', 'AI response to score')
+  .action((prompt, response) => {
+    console.log(chalk.bold.blue('⚖️  Effectiveness Analysis'));
+    console.log(chalk.gray('━'.repeat(50)));
+
+    const effectiveness = scoreEffectiveness(prompt, response);
+
+    console.log(`\n🎯 Overall Score: ${chalk.cyan(`${effectiveness.overallEffectiveness}/100`)}`);
+
+    console.log(`\n📊 Breakdown:`);
+    console.log(`  Prompt Understanding: ${effectiveness.promptClarityMatch.toFixed(1)}%`);
+    console.log(`  Code Completeness: ${effectiveness.codeCompleteness.toFixed(1)}%`);
+    console.log(`  Code Correctness: ${effectiveness.codeCorrectness.toFixed(1)}%`);
+    console.log(`  Code Efficiency: ${effectiveness.codeEfficiency.toFixed(1)}%`);
+
+    console.log(`\n💡 Interpretation:`);
+    if (effectiveness.overallEffectiveness >= 80) {
+      console.log(chalk.green('  🌟 Excellent response quality!'));
+    } else if (effectiveness.overallEffectiveness >= 60) {
+      console.log(chalk.blue('  👍 Good response with minor issues'));
+    } else if (effectiveness.overallEffectiveness >= 40) {
+      console.log(chalk.yellow('  ⚠️  Moderate quality - review needed'));
+    } else {
+      console.log(chalk.red('  ❌ Poor quality - significant issues detected'));
+    }
+  });
+
+program
+  .command('hallucinations')
+  .description('Show hallucination statistics and trends')
+  .option('-p, --provider <provider>', 'Filter by AI provider')
+  .option('-l, --last <hours>', 'Show last N hours (default: 24)', '24')
+  .action((options) => {
+    const analytics = aiAnalytics.generateAnalytics();
+
+    console.log(chalk.bold.blue('🧠 Hallucination Analytics'));
+    console.log(chalk.gray('━'.repeat(50)));
+
+    console.log(`\n📊 Overall Statistics:`);
+    console.log(`  Total Interactions: ${analytics.totalInteractions}`);
+    console.log(`  Hallucination Rate: ${chalk.red(`${analytics.hallucinationMetrics.hallucinationRate}%`)}`);
+    console.log(`  Avg Confidence: ${analytics.hallucinationMetrics.avgConfidence.toFixed(1)}%`);
+
+    console.log(chalk.bold('\n🏢 Business Impact:'));
+    const impact = analytics.hallucinationMetrics.businessImpact;
+    console.log(`  Dev Time Wasted: ${chalk.yellow(`${impact.estimatedDevTimeWasted}h`)}`);
+    console.log(`  Quality Degradation: ${impact.qualityDegradationScore}/100`);
+    console.log(`  ROI Impact: ${chalk.red(`${impact.roiImpact}% reduction`)}`);
+    console.log(`  Extra Cost: ${chalk.red(`$${impact.costOfHallucinations.toFixed(2)}`)}`);
+
+    if (Object.keys(analytics.providerComparison).length > 0) {
+      console.log(chalk.bold('\n🔄 Provider Comparison:'));
+      Object.entries(analytics.providerComparison).forEach(([provider, stats]) => {
+        const status = stats.hallucinationRate > 15 ? chalk.red('⚠️ ') :
+                     stats.hallucinationRate > 5 ? chalk.yellow('⚡ ') : chalk.green('✅ ');
+        console.log(`${status}${provider}: ${stats.hallucinationRate}% hallucination rate`);
+      });
+    }
+
+    if (analytics.recommendations.length > 0) {
+      console.log(chalk.bold('\n💡 Recommendations:'));
+      analytics.recommendations.forEach(rec => {
+        console.log(`  • ${rec}`);
+      });
+    }
+  });
+
+program
+  .command('providers')
+  .description('Compare AI provider performance')
+  .action(() => {
+    const analytics = aiAnalytics.generateAnalytics();
+
+    console.log(chalk.bold.blue('🔄 AI Provider Comparison'));
+    console.log(chalk.gray('━'.repeat(50)));
+
+    if (Object.keys(analytics.providerComparison).length === 0) {
+      console.log(chalk.yellow('No provider data available yet. Use your AI tools to generate some data!'));
+      return;
+    }
+
+    console.log(`\n📊 Provider Statistics:`);
+    Object.entries(analytics.providerComparison).forEach(([provider, stats]) => {
+      const qualityColor = stats.avgQualityScore >= 80 ? chalk.green :
+                          stats.avgQualityScore >= 60 ? chalk.blue : chalk.red;
+      const effectivenessColor = stats.avgEffectivenessScore >= 80 ? chalk.green :
+                               stats.avgEffectivenessScore >= 60 ? chalk.blue : chalk.red;
+      const hallucinationColor = stats.hallucinationRate <= 5 ? chalk.green :
+                                stats.hallucinationRate <= 15 ? chalk.yellow : chalk.red;
+
+      console.log(`\n🏢 ${chalk.bold(provider)}:`);
+      console.log(`  Total Interactions: ${stats.totalInteractions}`);
+      console.log(`  Hallucination Rate: ${hallucinationColor(`${stats.hallucinationRate}%`)}`);
+      console.log(`  Avg Quality Score: ${qualityColor(`${stats.avgQualityScore}/100`)}`);
+      console.log(`  Avg Effectiveness: ${effectivenessColor(`${stats.avgEffectivenessScore}/100`)}`);
+
+      if (stats.businessImpact.estimatedDevTimeWasted > 0) {
+        console.log(`  Dev Time Wasted: ${chalk.yellow(`${stats.businessImpact.estimatedDevTimeWasted}h`)}`);
+      }
+    });
+
+    // Find best and worst performers
+    const providers = Object.entries(analytics.providerComparison);
+    if (providers.length > 1) {
+      const bestProvider = providers.sort(([,a], [,b]) =>
+        (b.avgQualityScore + b.avgEffectivenessScore) - (a.avgQualityScore + a.avgEffectivenessScore)
+      )[0];
+
+      const worstProvider = providers.sort(([,a], [,b]) =>
+        (a.avgQualityScore + a.avgEffectivenessScore) - (b.avgQualityScore + b.avgEffectivenessScore)
+      )[0];
+
+      console.log(chalk.bold('\n🏆 Performance Summary:'));
+      console.log(`  Best Provider: ${chalk.green(bestProvider[0])} (${bestProvider[1].avgQualityScore}/100 quality)`);
+      console.log(`  Needs Attention: ${chalk.red(worstProvider[0])} (${worstProvider[1].avgQualityScore}/100 quality)`);
+    }
+  });
+
+program
+  .command('export')
+  .description('Export analytics data to JSON file')
+  .option('-o, --output <file>', 'Output file path', 'ai-analytics-export.json')
+  .action((options) => {
+    try {
+      aiAnalytics.exportAnalytics(options.output);
+      console.log(chalk.green(`✅ Analytics exported to ${options.output}`));
+    } catch (error) {
+      console.error(chalk.red('❌ Export failed:'), error);
+    }
+  });
+
 program.parse(process.argv);
