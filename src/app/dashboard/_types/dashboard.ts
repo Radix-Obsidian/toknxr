@@ -18,6 +18,8 @@ export interface Interaction {
   qualityRating: 'useful' | 'partial' | 'wasted';
   hallucination: boolean;
   timestamp: string | Date; // Supabase timestamp
+  codeQualityScore?: number;
+  effectivenessScore?: number;
 }
 
 export type QualityRating = 'useful' | 'partial' | 'wasted';

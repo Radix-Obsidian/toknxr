@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import { InteractionHistory } from '../InteractionHistory';
 import { Interaction } from '../../_types';
 
@@ -67,7 +68,7 @@ describe('InteractionHistory', () => {
     // Should still render headers but no data rows
     expect(screen.getByText('Interaction History')).toBeInTheDocument();
     expect(screen.getByRole('table')).toBeInTheDocument();
-    
+
     // Should not have any data rows
     const rows = screen.getAllByRole('row');
     expect(rows).toHaveLength(1); // Only header row

@@ -62,8 +62,7 @@ describe('TrackerForm', () => {
     expect(mockProps.onInputChange).toHaveBeenCalled();
 
     // Test select change
-    const providerSelect = screen.getByDisplayValue('openai');
-    fireEvent.change(providerSelect, { target: { value: 'anthropic' } });
+    fireEvent.change(screen.getByDisplayValue('openai'), { target: { value: 'anthropic' } });
     expect(mockProps.onInputChange).toHaveBeenCalled();
 
     // Test checkbox change
@@ -95,7 +94,7 @@ describe('TrackerForm', () => {
     render(<TrackerForm {...submittingProps} />);
 
     expect(screen.getByText('Tracking...')).toBeInTheDocument();
-    
+
     const submitButton = screen.getByRole('button', { name: /tracking/i });
     expect(submitButton).toBeDisabled();
 
@@ -107,8 +106,8 @@ describe('TrackerForm', () => {
   it('renders all provider options', () => {
     render(<TrackerForm {...mockProps} />);
 
-    const providerSelect = screen.getByDisplayValue('openai');
-    
+    const providerSelect = screen.getByDisplayValue('openai'); // eslint-disable-line @typescript-eslint/no-unused-vars
+
     // Check that all options are present
     expect(screen.getByRole('option', { name: 'OpenAI' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'Anthropic' })).toBeInTheDocument();

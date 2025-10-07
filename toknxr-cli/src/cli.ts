@@ -23,7 +23,8 @@ import {
   InteractiveDataExplorer,
   CliStateManager,
   filterAndSearchInteractions,
-  type OraWithProgress
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  type OraWithProgress,
 } from './ui.js';
 
 // Define a type for the interaction object
@@ -45,7 +46,6 @@ interface Interaction {
   requestId?: string;
   timestamp?: string;
 }
-
 
 // Gracefully handle broken pipe (e.g., piping output to `head`)
 process.stdout.on('error', (err: NodeJS.ErrnoException | null) => {
@@ -111,7 +111,9 @@ function generateWeeklyCostTrends(interactions: Interaction[]): number[] {
 
       // Only consider last 7 days
       if (interactionDate >= lastWeek) {
-        const daysDiff = Math.floor((now.getTime() - interactionDate.getTime()) / (24 * 60 * 60 * 1000));
+        const daysDiff = Math.floor(
+          (now.getTime() - interactionDate.getTime()) / (24 * 60 * 60 * 1000)
+        );
 
         // Map to array index (0 = today, 6 = 7 days ago)
         if (daysDiff >= 0 && daysDiff < 7) {
@@ -130,17 +132,14 @@ function generateWeeklyCostTrends(interactions: Interaction[]): number[] {
     // Create sample data for demonstration (normally we'd skip showing the chart)
     // This creates a nice demo pattern when no data is available
     for (let i = 0; i < 7; i++) {
-      dailyCosts[i] = Math.max(0, (Math.random() * 2) + 0.1); // Random demo costs
+      dailyCosts[i] = Math.max(0, Math.random() * 2 + 0.1); // Random demo costs
     }
   }
 
   return dailyCosts;
 }
 
-program
-  .name('toknxr')
-  .description('AI Effectiveness & Code Quality Analysis CLI')
-  .version('0.1.0');
+program.name('toknxr').description('AI Effectiveness & Code Quality Analysis CLI').version('0.1.0');
 
 program
   .command('menu')
@@ -148,12 +147,24 @@ program
   .action(async () => {
     try {
       const choice = await createInteractiveMenu([
-        { name: chalk.cyan('🚀 Start Tracking') + chalk.gray(' - Launch proxy server'), value: 'start' },
-        { name: chalk.blue('📊 View Statistics') + chalk.gray(' - Token usage & costs'), value: 'stats' },
-        { name: chalk.magenta('🔍 Code Analysis') + chalk.gray(' - Quality insights'), value: 'analysis' },
+        {
+          name: chalk.cyan('🚀 Start Tracking') + chalk.gray(' - Launch proxy server'),
+          value: 'start',
+        },
+        {
+          name: chalk.blue('📊 View Statistics') + chalk.gray(' - Token usage & costs'),
+          value: 'stats',
+        },
+        {
+          name: chalk.magenta('🔍 Code Analysis') + chalk.gray(' - Quality insights'),
+          value: 'analysis',
+        },
         { name: chalk.green('🔄 Sync Data') + chalk.gray(' - Upload to dashboard'), value: 'sync' },
-        { name: chalk.yellow('🧠 AI Analysis') + chalk.gray(' - Hallucination detection'), value: 'hallucinations' },
-        { name: chalk.red('⚙️ Initialize') + chalk.gray(' - Set up configuration'), value: 'init' }
+        {
+          name: chalk.yellow('🧠 AI Analysis') + chalk.gray(' - Hallucination detection'),
+          value: 'hallucinations',
+        },
+        { name: chalk.red('⚙️ Initialize') + chalk.gray(' - Set up configuration'), value: 'init' },
       ]);
 
       switch (choice) {
@@ -163,7 +174,7 @@ program
             'Loading configuration',
             'Setting up providers',
             'Starting analytics engine',
-            'Ready for requests'
+            'Ready for requests',
           ]);
 
           setTimeout(() => spinner.updateProgress(0), 500);
@@ -211,18 +222,18 @@ program
       'Initializing AI provider connections',
       'Setting up proxy routing & analytics',
       'Starting background monitoring',
-      'TokNXR proxy is live!'
+      'TokNXR proxy is live!',
     ];
 
     const spinner = createOperationProgress('TokNXR Proxy Server', steps);
 
     try {
       // Enhanced startup sequence with realistic timings
-      setTimeout(() => spinner.updateProgress(0), 200);   // System check (fast)
-      setTimeout(() => spinner.updateProgress(1), 600);   // Configuration (medium)
-      setTimeout(() => spinner.updateProgress(2), 1100);  // Providers (longer)
-      setTimeout(() => spinner.updateProgress(3), 1600);  // Routing setup (significant)
-      setTimeout(() => spinner.updateProgress(4), 2000);  // Background monitoring (final prep)
+      setTimeout(() => spinner.updateProgress(0), 200); // System check (fast)
+      setTimeout(() => spinner.updateProgress(1), 600); // Configuration (medium)
+      setTimeout(() => spinner.updateProgress(2), 1100); // Providers (longer)
+      setTimeout(() => spinner.updateProgress(3), 1600); // Routing setup (significant)
+      setTimeout(() => spinner.updateProgress(4), 2000); // Background monitoring (final prep)
       setTimeout(() => {
         spinner.updateProgress(5);
         spinner.succeed(chalk.green(`✨ TokNXR proxy server is ready!`));
@@ -246,7 +257,7 @@ program
   .command('sync')
   .description('Sync local interaction logs to the Supabase dashboard.')
   .option('--clear', 'Clear the log file after a successful sync.')
-  .action(async (options) => {
+  .action(async options => {
     await syncInteractions(supabase, options);
   });
 
@@ -256,7 +267,10 @@ program
   .action(async () => {
     const logFilePath = path.resolve(process.cwd(), 'interactions.log');
     if (!fs.existsSync(logFilePath)) {
-      console.log(chalk.yellow('No interactions logged yet. Start tracking with: ') + chalk.cyan('toknxr start'));
+      console.log(
+        chalk.yellow('No interactions logged yet. Start tracking with: ') +
+          chalk.cyan('toknxr start')
+      );
       return;
     }
 
@@ -293,40 +307,54 @@ program
     }
 
     // Calculate statistics
-    const stats: Record<string, ProviderStats> = interactions.reduce((acc: Record<string, ProviderStats>, interaction: Interaction) => {
-      const provider = interaction.provider;
-      if (!acc[provider]) {
-        acc[provider] = {
-          totalTokens: 0, promptTokens: 0, completionTokens: 0,
-          requestCount: 0, costUSD: 0, codingCount: 0,
-          qualitySum: 0, effectivenessSum: 0, avgQualityScore: 0, avgEffectivenessScore: 0
-        };
-      }
-
-      const providerStats = acc[provider];
-      providerStats.totalTokens += interaction.totalTokens || 0;
-      providerStats.promptTokens += interaction.promptTokens || 0;
-      providerStats.completionTokens += interaction.completionTokens || 0;
-      providerStats.requestCount += 1;
-      providerStats.costUSD += interaction.costUSD || 0;
-
-      if (interaction.taskType === 'coding') {
-        providerStats.codingCount += 1;
-        if (interaction.codeQualityScore !== undefined) {
-          providerStats.qualitySum += interaction.codeQualityScore;
+    const stats: Record<string, ProviderStats> = interactions.reduce(
+      (acc: Record<string, ProviderStats>, interaction: Interaction) => {
+        const provider = interaction.provider;
+        if (!acc[provider]) {
+          acc[provider] = {
+            totalTokens: 0,
+            promptTokens: 0,
+            completionTokens: 0,
+            requestCount: 0,
+            costUSD: 0,
+            codingCount: 0,
+            qualitySum: 0,
+            effectivenessSum: 0,
+            avgQualityScore: 0,
+            avgEffectivenessScore: 0,
+          };
         }
-        if (interaction.effectivenessScore !== undefined) {
-          providerStats.effectivenessSum += interaction.effectivenessScore;
+
+        const providerStats = acc[provider];
+        providerStats.totalTokens += interaction.totalTokens || 0;
+        providerStats.promptTokens += interaction.promptTokens || 0;
+        providerStats.completionTokens += interaction.completionTokens || 0;
+        providerStats.requestCount += 1;
+        providerStats.costUSD += interaction.costUSD || 0;
+
+        if (interaction.taskType === 'coding') {
+          providerStats.codingCount += 1;
+          if (interaction.codeQualityScore !== undefined) {
+            providerStats.qualitySum += interaction.codeQualityScore;
+          }
+          if (interaction.effectivenessScore !== undefined) {
+            providerStats.effectivenessSum += interaction.effectivenessScore;
+          }
         }
-      }
-      return acc;
-    }, {} as Record<string, any>);
+        return acc;
+      },
+      {} as Record<string, ProviderStats>
+    );
 
     // Calculate averages
-    Object.values(stats).forEach((providerStats: any) => {
+    Object.values(stats).forEach((providerStats: ProviderStats) => {
       if (providerStats.codingCount > 0) {
-        providerStats.avgQualityScore = Math.round(providerStats.qualitySum / providerStats.codingCount);
-        providerStats.avgEffectivenessScore = Math.round(providerStats.effectivenessSum / providerStats.codingCount);
+        providerStats.avgQualityScore = Math.round(
+          providerStats.qualitySum / providerStats.codingCount
+        );
+        providerStats.avgEffectivenessScore = Math.round(
+          providerStats.effectivenessSum / providerStats.codingCount
+        );
       }
     });
 
@@ -350,33 +378,48 @@ program
       costUSD: 0,
       codingCount: 0,
       qualitySum: 0,
-      effectivenessSum: 0
+      effectivenessSum: 0,
     };
 
     // Calculate grand totals
-    const grandTotals = Object.values(stats).reduce((acc: GrandTotals, providerStats: ProviderStats): GrandTotals => ({
-      totalTokens: acc.totalTokens + providerStats.totalTokens,
-      promptTokens: acc.promptTokens + providerStats.promptTokens,
-      completionTokens: acc.completionTokens + providerStats.completionTokens,
-      requestCount: acc.requestCount + providerStats.requestCount,
-      costUSD: acc.costUSD + providerStats.costUSD,
-      codingCount: acc.codingCount + providerStats.codingCount,
-      qualitySum: acc.qualitySum + providerStats.qualitySum,
-      effectivenessSum: acc.effectivenessSum + providerStats.effectivenessSum
-    }), initialTotals);
+    const grandTotals = Object.values(stats).reduce(
+      (acc: GrandTotals, providerStats: ProviderStats): GrandTotals => ({
+        totalTokens: acc.totalTokens + providerStats.totalTokens,
+        promptTokens: acc.promptTokens + providerStats.promptTokens,
+        completionTokens: acc.completionTokens + providerStats.completionTokens,
+        requestCount: acc.requestCount + providerStats.requestCount,
+        costUSD: acc.costUSD + providerStats.costUSD,
+        codingCount: acc.codingCount + providerStats.codingCount,
+        qualitySum: acc.qualitySum + providerStats.qualitySum,
+        effectivenessSum: acc.effectivenessSum + providerStats.effectivenessSum,
+      }),
+      initialTotals
+    );
 
     // Calculate waste rate and hallucination rate estimates
     const codingInteractions = interactions.filter(i => i.taskType === 'coding');
-    const wasteRate = codingInteractions.length > 0
-      ? (codingInteractions.filter(i => (i.codeQualityScore || 0) < 70).length / codingInteractions.length) * 100
-      : 0;
+    const wasteRate =
+      codingInteractions.length > 0
+        ? (codingInteractions.filter(i => (i.codeQualityScore || 0) < 70).length /
+            codingInteractions.length) *
+          100
+        : 0;
 
-    const hallucinationRate = interactions.length > 0
-      ? (interactions.filter(i => Math.random() < 0.03).length / interactions.length) * 100 // Estimated 3%
-      : 0;
+     
+    const hallucinationRate =
+      interactions.length > 0
+        ? (interactions.filter(i => Math.random() < 0.03).length / interactions.length) * 100 // Estimated 3%
+        : 0;
 
     // Use enhanced UI components with professional presentation
-    console.log(createStatsOverview(grandTotals.costUSD, grandTotals.requestCount, wasteRate, hallucinationRate));
+    console.log(
+      createStatsOverview(
+        grandTotals.costUSD,
+        grandTotals.requestCount,
+        wasteRate,
+        hallucinationRate
+      )
+    );
     console.log(); // Add spacing
 
     // Add cost trend visualization if budget tracking available
@@ -397,8 +440,14 @@ program
     }
 
     // Enhanced contextual insights with structured recommendations
-    const avgQuality = grandTotals.codingCount > 0 ? Math.round(grandTotals.qualitySum / grandTotals.codingCount) : 0;
-    const avgEffectiveness = grandTotals.codingCount > 0 ? Math.round(grandTotals.effectivenessSum / grandTotals.codingCount) : 0;
+    const avgQuality =
+      grandTotals.codingCount > 0
+        ? Math.round(grandTotals.qualitySum / grandTotals.codingCount)
+        : 0;
+    const avgEffectiveness =
+      grandTotals.codingCount > 0
+        ? Math.round(grandTotals.effectivenessSum / grandTotals.codingCount)
+        : 0;
 
     // Create structured insights box
     if (avgQuality < 70 || avgEffectiveness < 70) {
@@ -412,19 +461,27 @@ program
         recommendations.push('🧪 Test prompts iteratively for better results');
       }
 
-      console.log(createBox('💡 Improvement Recommendations', recommendations, {
-        borderColor: 'yellow',
-        titleColor: 'yellow'
-      }));
+      console.log(
+        createBox('💡 Improvement Recommendations', recommendations, {
+          borderColor: 'yellow',
+          titleColor: 'yellow',
+        })
+      );
     } else if (avgQuality >= 80 && avgEffectiveness >= 80) {
-      console.log(createBox('🎉 Excellence Achieved', [
-        '🌟 Your AI coding setup is performing excellently!',
-        '📈 Continue monitoring quality metrics',
-        '🎯 Consider advanced prompting techniques'
-      ], {
-        borderColor: 'green',
-        titleColor: 'green'
-      }));
+      console.log(
+        createBox(
+          '🎉 Excellence Achieved',
+          [
+            '🌟 Your AI coding setup is performing excellently!',
+            '📈 Continue monitoring quality metrics',
+            '🎯 Consider advanced prompting techniques',
+          ],
+          {
+            borderColor: 'green',
+            titleColor: 'green',
+          }
+        )
+      );
     }
 
     // Interactive navigation and context-aware guidance
@@ -433,7 +490,7 @@ program
 
     const rl = readline.createInterface({
       input: process.stdin,
-      output: process.stdout
+      output: process.stdout,
     });
 
     // Analyze current situation for intelligent suggestions
@@ -441,7 +498,9 @@ program
       needsBudgetAttention: grandTotals.costUSD > 40, // 80% of monthly budget
       needsQualityImprovement: avgQuality < 75,
       hasMultipleProviders: Object.keys(stats).length > 1,
-      hasRecentData: interactions.some(i => new Date(i.timestamp || 0) > new Date(Date.now() - 24 * 60 * 60 * 1000))
+      hasRecentData: interactions.some(
+        i => new Date(i.timestamp || 0) > new Date(Date.now() - 24 * 60 * 60 * 1000)
+      ),
     };
 
     // Generate intelligent navigation options based on current state
@@ -450,44 +509,44 @@ program
         key: '1',
         title: chalk.cyan('📊 View Detailed Analysis'),
         description: 'Deep dive into provider and quality metrics',
-        recommended: currentSituation.hasMultipleProviders
+        recommended: currentSituation.hasMultipleProviders,
       },
       {
         key: '2',
         title: chalk.magenta('🧠 AI Performance Insights'),
         description: 'Advanced hallucination and effectiveness analysis',
-        recommended: currentSituation.needsQualityImprovement
+        recommended: currentSituation.needsQualityImprovement,
       },
       {
         key: '3',
         title: chalk.yellow('💰 Budget & Cost Optimization'),
         description: 'Strategies to reduce expenses and improve ROI',
-        recommended: currentSituation.needsBudgetAttention
+        recommended: currentSituation.needsBudgetAttention,
       },
       {
         key: '4',
         title: chalk.green('📈 Real-time Monitoring'),
         description: 'Live tracking of AI interactions',
-        recommended: currentSituation.hasRecentData
+        recommended: currentSituation.hasRecentData,
       },
       {
         key: '5',
         title: chalk.blue('🚀 Start Refinement Journey'),
         description: 'Interactive prompts to improve AI performance',
-        recommended: true // Always available
+        recommended: true, // Always available
       },
       {
         key: 'm',
         title: chalk.gray('📋 Main Menu'),
         description: 'Return to interactive menu system',
-        recommended: false
+        recommended: false,
       },
       {
         key: 'q',
         title: chalk.gray('❌ Exit'),
         description: 'Quit analysis session',
-        recommended: false
-      }
+        recommended: false,
+      },
     ];
 
     console.log(chalk.gray('Select an option to continue your analysis journey:'));
@@ -500,17 +559,24 @@ program
     });
 
     console.log();
-    rl.question(chalk.cyan('Your choice: '), (answer) => {
+    rl.question(chalk.cyan('Your choice: '), answer => {
       const choice = answer.toLowerCase().trim();
 
       switch (choice) {
         case '1':
           console.log(chalk.blue('\n🔍 Navigating to detailed analysis...'));
-          console.log(chalk.cyan('Use: ') + chalk.yellow('toknxr code-analysis') + chalk.gray(' for deep quality insights'));
+          console.log(
+            chalk.cyan('Use: ') +
+              chalk.yellow('toknxr code-analysis') +
+              chalk.gray(' for deep quality insights')
+          );
           setTimeout(async () => {
             try {
               const { execSync } = await import('child_process');
-              execSync('node -e "if(require(\'fs\').existsSync(\'package.json\')) { process.chdir(__dirname); require(\'tsx/dist/esbuild-register\').register(); require(\'./code-analysis.ts\').action(); }" 2>/dev/null || echo "Please run: toknxr code-analysis"', { stdio: 'inherit' });
+              execSync(
+                "node -e \"if(require('fs').existsSync('package.json')) { process.chdir(__dirname); require('tsx/dist/esbuild-register').register(); require('./code-analysis.ts').action(); }\" 2>/dev/null || echo \"Please run: toknxr code-analysis\"",
+                { stdio: 'inherit' }
+              );
             } catch {
               console.log(chalk.gray('Please run: ') + chalk.cyan('toknxr code-analysis'));
             }
@@ -519,11 +585,18 @@ program
 
         case '2':
           console.log(chalk.magenta('\n🧠 Navigating to AI performance insights...'));
-          console.log(chalk.cyan('Use: ') + chalk.yellow('toknxr hallucinations') + chalk.gray(' for hallucination analysis'));
+          console.log(
+            chalk.cyan('Use: ') +
+              chalk.yellow('toknxr hallucinations') +
+              chalk.gray(' for hallucination analysis')
+          );
           setTimeout(async () => {
             try {
               const { execSync } = await import('child_process');
-              execSync('node -e "if(require(\'fs\').existsSync(\'package.json\')) { process.chdir(__dirname); require(\'tsx/dist/esbuild-register\').register(); require(\'./hallucinations.ts\').action(); }" 2>/dev/null || echo "Please run: toknxr hallucinations"', { stdio: 'inherit' });
+              execSync(
+                "node -e \"if(require('fs').existsSync('package.json')) { process.chdir(__dirname); require('tsx/dist/esbuild-register').register(); require('./hallucinations.ts').action(); }\" 2>/dev/null || echo \"Please run: toknxr hallucinations\"",
+                { stdio: 'inherit' }
+              );
             } catch {
               console.log(chalk.gray('Please run: ') + chalk.cyan('toknxr hallucinations'));
             }
@@ -533,18 +606,31 @@ program
         case '3':
           console.log(chalk.yellow('\n💰 Navigating to budget optimization...'));
           console.log(chalk.gray('📋 Budget Optimization Strategies:'));
-          console.log(`  • Monthly budget: $${(50).toFixed(2)} (spent: $${grandTotals.costUSD.toFixed(2)})`);
-          console.log(`  • Daily average: $${(grandTotals.costUSD / Math.max(1, Math.ceil((new Date().getTime() - new Date(interactions[0]?.timestamp || Date.now()).getTime()) / (1000 * 60 * 60 * 24)))).toFixed(2)}`);
-          console.log(`  • ${avgQuality >= 80 ? 'Try cheaper providers with similar quality' : 'Focus on prompt optimization to reduce request volume'}`);
+          console.log(
+            `  • Monthly budget: $${(50).toFixed(2)} (spent: $${grandTotals.costUSD.toFixed(2)})`
+          );
+          console.log(
+            `  • Daily average: $${(grandTotals.costUSD / Math.max(1, Math.ceil((new Date().getTime() - new Date(interactions[0]?.timestamp || Date.now()).getTime()) / (1000 * 60 * 60 * 24)))).toFixed(2)}`
+          );
+          console.log(
+            `  • ${avgQuality >= 80 ? 'Try cheaper providers with similar quality' : 'Focus on prompt optimization to reduce request volume'}`
+          );
           break;
 
         case '4':
           console.log(chalk.green('\n📈 Starting real-time monitoring...'));
-          console.log(chalk.cyan('Use: ') + chalk.yellow('toknxr tail') + chalk.gray(' to monitor live interactions'));
+          console.log(
+            chalk.cyan('Use: ') +
+              chalk.yellow('toknxr tail') +
+              chalk.gray(' to monitor live interactions')
+          );
           setTimeout(async () => {
             try {
               const { execSync } = await import('child_process');
-              execSync('node -e "if(require(\'fs\').existsSync(\'package.json\')) { process.chdir(__dirname); require(\'tsx/dist/esbuild-register\').register(); require(\'./tail.ts\').action(); }" 2>/dev/null || echo "Please run: toknxr tail"', { stdio: 'inherit' });
+              execSync(
+                "node -e \"if(require('fs').existsSync('package.json')) { process.chdir(__dirname); require('tsx/dist/esbuild-register').register(); require('./tail.ts').action(); }\" 2>/dev/null || echo \"Please run: toknxr tail\"",
+                { stdio: 'inherit' }
+              );
             } catch {
               console.log(chalk.gray('Please run: ') + chalk.cyan('toknxr tail'));
             }
@@ -573,7 +659,12 @@ program
           setTimeout(async () => {
             try {
               const { spawn } = await import('child_process');
-              const menuCommand = spawn('node', ['-e', `
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+              const menuCommand = spawn(
+                'node',
+                [
+                  '-e',
+                  `
                 try {
                   process.chdir('${process.cwd().replace(/\\/g, '\\\\')}');
                   require('tsx/dist/esbuild-register').register();
@@ -585,7 +676,10 @@ program
                 } catch (e) {
                   console.log('Please run: toknxr menu');
                 }
-              `], { stdio: 'inherit' });
+              `,
+                ],
+                { stdio: 'inherit' }
+              );
             } catch (e) {
               console.log('Please run: toknxr menu');
             }
@@ -631,16 +725,17 @@ program
           {
             name: 'Gemini-Pro',
             routePrefix: '/gemini',
-            targetUrl: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
+            targetUrl:
+              'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
             apiKeyEnvVar: 'GEMINI_API_KEY',
             authHeader: 'x-goog-api-key',
             tokenMapping: {
               prompt: 'usageMetadata.promptTokenCount',
               completion: 'usageMetadata.candidatesTokenCount',
-              total: 'usageMetadata.totalTokenCount'
-            }
-          }
-        ]
+              total: 'usageMetadata.totalTokenCount',
+            },
+          },
+        ],
       };
       fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
       console.log(chalk.green(`Created ${configPath}`));
@@ -654,7 +749,7 @@ program
         version: '1',
         monthlyUSD: 50,
         perProviderMonthlyUSD: { 'Gemini-Pro': 30 },
-        webhookUrl: ''
+        webhookUrl: '',
       };
       fs.writeFileSync(policyPath, JSON.stringify(policy, null, 2));
       console.log(chalk.green(`Created ${policyPath}`));
@@ -662,10 +757,6 @@ program
       console.log(chalk.yellow(`Skipped ${policyPath} (exists)`));
     }
   });
-
-
-
-
 
 program
   .command('tail')
@@ -683,7 +774,9 @@ program
       const last = lines[lines.length - 1];
       try {
         const j: Interaction = JSON.parse(last);
-        console.log(`${chalk.bold(j.provider)} ${chalk.gray(j.timestamp)} id=${j.requestId} model=${j.model} tokens=${j.totalTokens} cost=$${(j.costUSD||0).toFixed(4)}`);
+        console.log(
+          `${chalk.bold(j.provider)} ${chalk.gray(j.timestamp)} id=${j.requestId} model=${j.model} tokens=${j.totalTokens} cost=$${(j.costUSD || 0).toFixed(4)}`
+        );
       } catch {
         console.log(last);
       }
@@ -713,7 +806,7 @@ program
       version: '1',
       monthlyUSD: 50,
       perProviderMonthlyUSD: { 'Gemini-Pro': 30 },
-      webhookUrl: ''
+      webhookUrl: '',
     };
     fs.writeFileSync(dest, JSON.stringify(fallback, null, 2));
     console.log(chalk.green(`Created ${dest}`));
@@ -725,23 +818,31 @@ program
   .action(() => {
     const logFilePath = path.resolve(process.cwd(), 'interactions.log');
     if (!fs.existsSync(logFilePath)) {
-      console.log(chalk.yellow('No interactions logged yet. Use the `start` command to begin tracking.'));
+      console.log(
+        chalk.yellow('No interactions logged yet. Use the `start` command to begin tracking.')
+      );
       return;
     }
 
     const fileContent = fs.readFileSync(logFilePath, 'utf8');
     const lines = fileContent.trim().split('\n');
-    const interactions: Interaction[] = lines.map(line => {
+    const interactions: Interaction[] = lines
+      .map(line => {
         try {
-            return JSON.parse(line);
+          return JSON.parse(line);
         } catch (error) {
-            console.warn(`Skipping invalid log entry: ${line}`);
-            return null;
+          console.warn(`Skipping invalid log entry: ${line}`);
+          return null;
         }
-    }).filter((interaction): interaction is Interaction => interaction !== null);
+      })
+      .filter((interaction): interaction is Interaction => interaction !== null);
 
     if (interactions.length === 0) {
-      console.log(chalk.yellow('No coding interactions found. Code analysis requires coding requests to the proxy.'));
+      console.log(
+        chalk.yellow(
+          'No coding interactions found. Code analysis requires coding requests to the proxy.'
+        )
+      );
       return;
     }
 
@@ -792,25 +893,37 @@ program
     console.log(chalk.red(`  Poor (0-59): ${effectivenessRanges.poor}`));
 
     // Recent examples with low scores
-    const lowQuality = interactions.filter((i: Interaction) => (i.codeQualityScore || 0) < 70).slice(-3);
+    const lowQuality = interactions
+      .filter((i: Interaction) => (i.codeQualityScore || 0) < 70)
+      .slice(-3);
     if (lowQuality.length > 0) {
       console.log(chalk.bold('\n🔍 Recent Low-Quality Code Examples:'));
       lowQuality.forEach((i: Interaction, idx: number) => {
-        console.log(`\n${idx + 1}. Quality: ${i.codeQualityScore}/100${i.effectivenessScore ? ` | Effectiveness: ${i.effectivenessScore}/100` : ''}`);
+        console.log(
+          `\n${idx + 1}. Quality: ${i.codeQualityScore}/100${i.effectivenessScore ? ` | Effectiveness: ${i.effectivenessScore}/100` : ''}`
+        );
         console.log(`   Provider: ${i.provider} | Model: ${i.model}`);
         if (i.userPrompt) {
           const prompt = i.userPrompt.substring(0, 100);
           console.log(`   Prompt: ${prompt}${i.userPrompt.length > 100 ? '...' : ''}`);
         }
-        if (i.codeQualityMetrics && i.codeQualityMetrics.potentialIssues && i.codeQualityMetrics.potentialIssues.length > 0) {
+        if (
+          i.codeQualityMetrics &&
+          i.codeQualityMetrics.potentialIssues &&
+          i.codeQualityMetrics.potentialIssues.length > 0
+        ) {
           console.log(`   Issues: ${i.codeQualityMetrics.potentialIssues.join(', ')}`);
         }
       });
     }
 
     // Improvement suggestions
-    const avgQuality = interactions.reduce((sum: number, i: Interaction) => sum + (i.codeQualityScore || 0), 0) / interactions.length;
-    const avgEffectiveness = interactions.reduce((sum: number, i: Interaction) => sum + (i.effectivenessScore || 0), 0) / interactions.length;
+    const avgQuality =
+      interactions.reduce((sum: number, i: Interaction) => sum + (i.codeQualityScore || 0), 0) /
+      interactions.length;
+    const avgEffectiveness =
+      interactions.reduce((sum: number, i: Interaction) => sum + (i.effectivenessScore || 0), 0) /
+      interactions.length;
 
     console.log(chalk.bold('\n💡 Improvement Suggestions:'));
     if (avgQuality < 70) {
@@ -840,7 +953,11 @@ program
 
 // Import required modules for new AI analysis commands
 import { hallucinationDetector } from './hallucination-detector.js';
-import { analyzeCodeQuality, scoreEffectiveness, extractCodeFromResponse } from './code-analysis.js';
+import {
+  analyzeCodeQuality,
+  scoreEffectiveness,
+  extractCodeFromResponse,
+} from './code-analysis.js';
 import { aiAnalytics } from './ai-analytics.js';
 import { auditLogger, AuditEventType, initializeAuditLogging } from './audit-logger.js';
 
@@ -862,7 +979,9 @@ program
     );
 
     console.log(chalk.bold('\n🎯 Hallucination Detection:'));
-    console.log(`  Status: ${hallucinationResult.isLikelyHallucination ? chalk.red('⚠️  LIKELY HALLUCINATION') : chalk.green('✅ Clean Response')}`);
+    console.log(
+      `  Status: ${hallucinationResult.isLikelyHallucination ? chalk.red('⚠️  LIKELY HALLUCINATION') : chalk.green('✅ Clean Response')}`
+    );
     console.log(`  Confidence: ${hallucinationResult.confidence.toFixed(1)}%`);
     console.log(`  Severity: ${hallucinationResult.severity.toUpperCase()}`);
 
@@ -883,7 +1002,9 @@ program
       console.log(`  Lines of Code: ${codeMetrics.linesOfCode}`);
       console.log(`  Complexity: ${codeMetrics.complexity.toFixed(1)}/10`);
       console.log(`  Readability: ${codeMetrics.estimatedReadability}/10`);
-      console.log(`  Syntax Valid: ${codeMetrics.syntaxValid ? chalk.green('✅') : chalk.red('❌')}`);
+      console.log(
+        `  Syntax Valid: ${codeMetrics.syntaxValid ? chalk.green('✅') : chalk.red('❌')}`
+      );
 
       if (codeMetrics.potentialIssues.length > 0) {
         console.log(chalk.yellow('\n⚠️  Potential Issues:'));
@@ -971,7 +1092,7 @@ program
   .description('Show hallucination statistics and trends')
   .option('-p, --provider <provider>', 'Filter by AI provider')
   .option('-l, --last <hours>', 'Show last N hours (default: 24)', '24')
-  .action((options) => {
+  .action(options => {
     const analytics = aiAnalytics.generateAnalytics();
 
     console.log(chalk.bold.blue('🧠 Hallucination Analytics'));
@@ -979,7 +1100,9 @@ program
 
     console.log(`\n📊 Overall Statistics:`);
     console.log(`  Total Interactions: ${analytics.totalInteractions}`);
-    console.log(`  Hallucination Rate: ${chalk.red(`${analytics.hallucinationMetrics.hallucinationRate}%`)}`);
+    console.log(
+      `  Hallucination Rate: ${chalk.red(`${analytics.hallucinationMetrics.hallucinationRate}%`)}`
+    );
     console.log(`  Avg Confidence: ${analytics.hallucinationMetrics.avgConfidence.toFixed(1)}%`);
 
     console.log(chalk.bold('\n🏢 Business Impact:'));
@@ -992,8 +1115,12 @@ program
     if (Object.keys(analytics.providerComparison).length > 0) {
       console.log(chalk.bold('\n🔄 Provider Comparison:'));
       Object.entries(analytics.providerComparison).forEach(([provider, stats]) => {
-        const status = stats.hallucinationRate > 15 ? chalk.red('⚠️ ') :
-                     stats.hallucinationRate > 5 ? chalk.yellow('⚡ ') : chalk.green('✅ ');
+        const status =
+          stats.hallucinationRate > 15
+            ? chalk.red('⚠️ ')
+            : stats.hallucinationRate > 5
+              ? chalk.yellow('⚡ ')
+              : chalk.green('✅ ');
         console.log(`${status}${provider}: ${stats.hallucinationRate}% hallucination rate`);
       });
     }
@@ -1016,44 +1143,72 @@ program
     console.log(chalk.gray('━'.repeat(50)));
 
     if (Object.keys(analytics.providerComparison).length === 0) {
-      console.log(chalk.yellow('No provider data available yet. Use your AI tools to generate some data!'));
+      console.log(
+        chalk.yellow('No provider data available yet. Use your AI tools to generate some data!')
+      );
       return;
     }
 
     console.log(`\n📊 Provider Statistics:`);
     Object.entries(analytics.providerComparison).forEach(([provider, stats]) => {
-      const qualityColor = stats.avgQualityScore >= 80 ? chalk.green :
-                          stats.avgQualityScore >= 60 ? chalk.blue : chalk.red;
-      const effectivenessColor = stats.avgEffectivenessScore >= 80 ? chalk.green :
-                               stats.avgEffectivenessScore >= 60 ? chalk.blue : chalk.red;
-      const hallucinationColor = stats.hallucinationRate <= 5 ? chalk.green :
-                                stats.hallucinationRate <= 15 ? chalk.yellow : chalk.red;
+      const qualityColor =
+        stats.avgQualityScore >= 80
+          ? chalk.green
+          : stats.avgQualityScore >= 60
+            ? chalk.blue
+            : chalk.red;
+      const effectivenessColor =
+        stats.avgEffectivenessScore >= 80
+          ? chalk.green
+          : stats.avgEffectivenessScore >= 60
+            ? chalk.blue
+            : chalk.red;
+      const hallucinationColor =
+        stats.hallucinationRate <= 5
+          ? chalk.green
+          : stats.hallucinationRate <= 15
+            ? chalk.yellow
+            : chalk.red;
 
       console.log(`\n🏢 ${chalk.bold(provider)}:`);
       console.log(`  Total Interactions: ${stats.totalInteractions}`);
       console.log(`  Hallucination Rate: ${hallucinationColor(`${stats.hallucinationRate}%`)}`);
       console.log(`  Avg Quality Score: ${qualityColor(`${stats.avgQualityScore}/100`)}`);
-      console.log(`  Avg Effectiveness: ${effectivenessColor(`${stats.avgEffectivenessScore}/100`)}`);
+      console.log(
+        `  Avg Effectiveness: ${effectivenessColor(`${stats.avgEffectivenessScore}/100`)}`
+      );
 
       if (stats.businessImpact.estimatedDevTimeWasted > 0) {
-        console.log(`  Dev Time Wasted: ${chalk.yellow(`${stats.businessImpact.estimatedDevTimeWasted}h`)}`);
+        console.log(
+          `  Dev Time Wasted: ${chalk.yellow(`${stats.businessImpact.estimatedDevTimeWasted}h`)}`
+        );
       }
     });
 
     // Find best and worst performers
     const providers = Object.entries(analytics.providerComparison);
     if (providers.length > 1) {
-      const bestProvider = providers.sort(([,a], [,b]) =>
-        (b.avgQualityScore + b.avgEffectivenessScore) - (a.avgQualityScore + a.avgEffectivenessScore)
+      const bestProvider = providers.sort(
+        ([, a], [, b]) =>
+          b.avgQualityScore +
+          b.avgEffectivenessScore -
+          (a.avgQualityScore + a.avgEffectivenessScore)
       )[0];
 
-      const worstProvider = providers.sort(([,a], [,b]) =>
-        (a.avgQualityScore + a.avgEffectivenessScore) - (b.avgQualityScore + b.avgEffectivenessScore)
+      const worstProvider = providers.sort(
+        ([, a], [, b]) =>
+          a.avgQualityScore +
+          a.avgEffectivenessScore -
+          (b.avgQualityScore + b.avgEffectivenessScore)
       )[0];
 
       console.log(chalk.bold('\n🏆 Performance Summary:'));
-      console.log(`  Best Provider: ${chalk.green(bestProvider[0])} (${bestProvider[1].avgQualityScore}/100 quality)`);
-      console.log(`  Needs Attention: ${chalk.red(worstProvider[0])} (${worstProvider[1].avgQualityScore}/100 quality)`);
+      console.log(
+        `  Best Provider: ${chalk.green(bestProvider[0])} (${bestProvider[1].avgQualityScore}/100 quality)`
+      );
+      console.log(
+        `  Needs Attention: ${chalk.red(worstProvider[0])} (${worstProvider[1].avgQualityScore}/100 quality)`
+      );
     }
   });
 
@@ -1061,7 +1216,7 @@ program
   .command('export')
   .description('Export analytics data to JSON file')
   .option('-o, --output <file>', 'Output file path', 'ai-analytics-export.json')
-  .action((options) => {
+  .action(options => {
     try {
       aiAnalytics.exportAnalytics(options.output);
       console.log(chalk.green(`✅ Analytics exported to ${options.output}`));
@@ -1077,10 +1232,13 @@ program
   .description('Interactive paginated browsing of all AI interactions with filtering')
   .option('-p, --page <page>', 'Start page number', '1')
   .option('-s, --size <size>', 'Page size (10/25/50)', '10')
-  .action(async (options) => {
+  .action(async options => {
     const logFilePath = path.resolve(process.cwd(), 'interactions.log');
     if (!fs.existsSync(logFilePath)) {
-      console.log(chalk.yellow('No interactions logged yet. Start tracking with: ') + chalk.cyan('toknxr start'));
+      console.log(
+        chalk.yellow('No interactions logged yet. Start tracking with: ') +
+          chalk.cyan('toknxr start')
+      );
       return;
     }
 
@@ -1108,41 +1266,70 @@ program
     explorer.setPageSize(pageSize);
     explorer.setPage(currentPage);
 
-    const renderInteraction = (interaction: any, index: number): string => {
+    const renderInteraction = (interaction: Interaction, index: number): string => {
       const num = index + 1;
-      const costColor = interaction.costUSD > 0.1 ? chalk.red : interaction.costUSD > 0.05 ? chalk.yellow : chalk.green;
-      const qualityColor = (interaction.codeQualityScore || 0) >= 80 ? chalk.green :
-                          (interaction.codeQualityScore || 0) >= 60 ? chalk.blue : chalk.red;
+      const costColor =
+        interaction.costUSD > 0.1
+          ? chalk.red
+          : interaction.costUSD > 0.05
+            ? chalk.yellow
+            : chalk.green;
+      const qualityColor =
+        (interaction.codeQualityScore || 0) >= 80
+          ? chalk.green
+          : (interaction.codeQualityScore || 0) >= 60
+            ? chalk.blue
+            : chalk.red;
 
-      return createBox(`#${num} ${interaction.provider}`, [
-        `📅 ${chalk.gray(new Date(interaction.timestamp || Date.now()).toLocaleDateString())}`,
-        `💰 Cost: ${costColor(`$${interaction.costUSD?.toFixed(4) || '0.0000'}`)}`,
-        `🎯 Effectiveness: ${interaction.effectivenessScore || 'N/A'}/100`,
-        `⭐ Quality: ${qualityColor(`${interaction.codeQualityScore || 'N/A'}/100`)}`,
-        `🔤 ${interaction.totalTokens || 0} tokens • ${interaction.model || 'Unknown model'}`,
-        ...(interaction.userPrompt ? [`"${interaction.userPrompt.substring(0, 60)}${interaction.userPrompt.length > 60 ? '...' : ''}"`] : [])
-      ], {
-        borderColor: 'gray',
-        titleColor: 'cyan',
-        width: 80
-      });
+      return createBox(
+        `#${num} ${interaction.provider}`,
+        [
+          `📅 ${chalk.gray(new Date(interaction.timestamp || Date.now()).toLocaleDateString())}`,
+          `💰 Cost: ${costColor(`$${interaction.costUSD?.toFixed(4) || '0.0000'}`)}`,
+          `🎯 Effectiveness: ${interaction.effectivenessScore || 'N/A'}/100`,
+          `⭐ Quality: ${qualityColor(`${interaction.codeQualityScore || 'N/A'}/100`)}`,
+          `🔤 ${interaction.totalTokens || 0} tokens • ${interaction.model || 'Unknown model'}`,
+          ...(interaction.userPrompt
+            ? [
+                `"${interaction.userPrompt.substring(0, 60)}${interaction.userPrompt.length > 60 ? '...' : ''}"`,
+              ]
+            : []),
+        ],
+        {
+          borderColor: 'gray',
+          titleColor: 'cyan',
+          width: 80,
+        }
+      );
     };
 
-    console.log(createPaginatedDisplay(
-      explorer.getCurrentPageData(),
-      pageSize,
-      currentPage,
-      renderInteraction,
-      `🐙 AI Interactions Browser (${explorer.getPaginationInfo().totalItems} total)`
-    ));
+    console.log(
+      createPaginatedDisplay(
+        explorer.getCurrentPageData(),
+        pageSize,
+        currentPage,
+        renderInteraction,
+        `🐙 AI Interactions Browser (${explorer.getPaginationInfo().totalItems} total)`
+      )
+    );
 
     // Interactive navigation
     const pagination = explorer.getPaginationInfo();
     if (pagination.totalPages > 1) {
       console.log(chalk.cyan('\nNavigation:'));
-      console.log(chalk.gray('• Use ') + chalk.yellow('toknxr browse --page 2') + chalk.gray(' to go to page 2'));
-      console.log(chalk.gray('• Use ') + chalk.yellow('toknxr browse --size 25') + chalk.gray(' for more items per page'));
-      console.log(chalk.gray('• Use ') + chalk.yellow('toknxr filter') + chalk.gray(' to filter results'));
+      console.log(
+        chalk.gray('• Use ') +
+          chalk.yellow('toknxr browse --page 2') +
+          chalk.gray(' to go to page 2')
+      );
+      console.log(
+        chalk.gray('• Use ') +
+          chalk.yellow('toknxr browse --size 25') +
+          chalk.gray(' for more items per page')
+      );
+      console.log(
+        chalk.gray('• Use ') + chalk.yellow('toknxr filter') + chalk.gray(' to filter results')
+      );
     }
   });
 
@@ -1154,12 +1341,20 @@ program
       console.log(chalk.blue.bold('\n🔍 Advanced Filtering'));
       console.log(chalk.gray('Configure filters that will persist across sessions\n'));
 
-      const currentFilters = CliStateManager.getPreferences().filters || {};
+      const currentFilters = (CliStateManager.getPreferences().filters || {}) as Record<
+        string,
+        unknown
+      >;
       const newFilters = await createFilterInterface(currentFilters);
 
       console.log(chalk.green('\n✅ Filters applied and saved!'));
-      console.log(chalk.gray('Use ') + chalk.cyan('toknxr browse') + chalk.gray(' to see filtered results'));
-      console.log(chalk.gray('Use ') + chalk.cyan('toknxr filter') + chalk.gray(' again to modify filters'));
+      console.log(
+        chalk.gray('Use ') + chalk.cyan('toknxr browse') + chalk.gray(' to see filtered results')
+      );
+      console.log(
+        chalk.gray('Use ') + chalk.cyan('toknxr filter') + chalk.gray(' again to modify filters')
+      );
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       console.log(chalk.red('❌ Failed to apply filters'));
       console.log(chalk.gray('Check your terminal supports interactive prompts'));
@@ -1170,7 +1365,7 @@ program
   .command('search')
   .description('Search across all AI interactions with field selection')
   .option('-q, --query <query>', 'Search query (minimum 2 characters)')
-  .action(async (options) => {
+  .action(async options => {
     const query = options.query;
     if (!query || query.trim().length < 2) {
       console.log(chalk.yellow('Please provide a search query with at least 2 characters:'));
@@ -1228,12 +1423,20 @@ program
         providerCounts[i.provider] = (providerCounts[i.provider] || 0) + 1;
       });
 
-      console.log(createBox('📊 Search Results Summary', [
-        `Total Results: ${filteredResults.length}`,
-        `Providers: ${Object.entries(providerCounts).map(([p, c]) => `${p}(${c})`).join(', ')}`,
-        '',
-        chalk.gray('Use ↑/↓ or page up/down to navigate results')
-      ], { borderColor: 'green', titleColor: 'green' }));
+      console.log(
+        createBox(
+          '📊 Search Results Summary',
+          [
+            `Total Results: ${filteredResults.length}`,
+            `Providers: ${Object.entries(providerCounts)
+              .map(([p, c]) => `${p}(${c})`)
+              .join(', ')}`,
+            '',
+            chalk.gray('Use ↑/↓ or page up/down to navigate results'),
+          ],
+          { borderColor: 'green', titleColor: 'green' }
+        )
+      );
 
       const renderSearchResult = (interaction: Interaction, index: number): string => {
         const num = index + 1;
@@ -1246,28 +1449,36 @@ program
 
         const highlightedPrompt = highlightMatch(interaction.userPrompt || '', searchOptions.query);
 
-        const colorFn = highlightColor === 'green' ? chalk.green :
-                        highlightColor === 'yellow' ? chalk.yellow :
-                        chalk.red;
-        return createBox(`#${num} ${interaction.provider} (${colorFn('★'.repeat(Math.ceil(score * 5)))})`, [
-          `📅 ${chalk.gray(new Date(interaction.timestamp || Date.now()).toLocaleDateString())}`,
-          `🎯 ${highlightedPrompt || 'No prompt available'}`,
-          `💰 $${interaction.costUSD?.toFixed(4) || '0.0000'} • ⭐ ${interaction.codeQualityScore || 'N/A'}/100`
-        ], {
-          borderColor: highlightColor,
-          titleColor: 'cyan',
-          width: 90
-        });
+        const colorFn =
+          highlightColor === 'green'
+            ? chalk.green
+            : highlightColor === 'yellow'
+              ? chalk.yellow
+              : chalk.red;
+        return createBox(
+          `#${num} ${interaction.provider} (${colorFn('★'.repeat(Math.ceil(score * 5)))})`,
+          [
+            `📅 ${chalk.gray(new Date(interaction.timestamp || Date.now()).toLocaleDateString())}`,
+            `🎯 ${highlightedPrompt || 'No prompt available'}`,
+            `💰 $${interaction.costUSD?.toFixed(4) || '0.0000'} • ⭐ ${interaction.codeQualityScore || 'N/A'}/100`,
+          ],
+          {
+            borderColor: highlightColor,
+            titleColor: 'cyan',
+            width: 90,
+          }
+        );
       };
 
-      console.log(createPaginatedDisplay(
-        explorer.getCurrentPageData(),
-        5, // Smaller page size for search results
-        1,
-        renderSearchResult,
-        undefined
-      ));
-
+      console.log(
+        createPaginatedDisplay(
+          explorer.getCurrentPageData(),
+          5, // Smaller page size for search results
+          1,
+          renderSearchResult,
+          undefined
+        )
+      );
     } catch (error) {
       console.log(chalk.red('❌ Search failed'));
       console.log(chalk.gray('Try using: ') + chalk.cyan('toknxr search --query "your terms"'));
@@ -1280,7 +1491,7 @@ program
   .option('--set <amount>', 'Set monthly budget amount')
   .option('--provider <provider>', 'Set budget for specific provider')
   .option('--view', 'View current budget settings')
-  .action((options) => {
+  .action(options => {
     if (options.set) {
       const amount = parseFloat(options.set);
       if (isNaN(amount) || amount <= 0) {
@@ -1295,9 +1506,10 @@ program
 
       if (!options.provider) {
         console.log(chalk.cyan('\n💡 Tip: Set provider-specific budgets for granular control'));
-        console.log(chalk.gray('Example: ') + chalk.yellow('toknxr budget --set 25 --provider "Gemini-Pro"'));
+        console.log(
+          chalk.gray('Example: ') + chalk.yellow('toknxr budget --set 25 --provider "Gemini-Pro"')
+        );
       }
-
     } else if (options.view || Object.keys(options).length === 0) {
       const preferences = CliStateManager.getPreferences();
       const budgets = CliStateManager.loadState().budgets;
@@ -1306,7 +1518,7 @@ program
       console.log(chalk.gray('━'.repeat(50)));
 
       console.log(chalk.bold('\nCurrent Settings:'));
-      console.log(`📊 Monthly Default: ${chalk.cyan(`$${budgets.default || 50.00}`)}`);
+      console.log(`📊 Monthly Default: ${chalk.cyan(`$${budgets.default || 50.0}`)}`);
       console.log(`📏 Page Size: ${preferences.pageSize || 10} items`);
       console.log(`🔧 Sort Order: ${preferences.sortOrder || 'date_descends'}`);
 
@@ -1320,8 +1532,12 @@ program
       }
 
       console.log(chalk.bold('\n💡 Budget Commands:'));
-      console.log(`  ${chalk.yellow('toknxr budget --set 75')}                   - Set monthly budget`);
-      console.log(`  ${chalk.yellow('toknxr budget --set 30 --provider GPT4')} - Set provider budget`);
+      console.log(
+        `  ${chalk.yellow('toknxr budget --set 75')}                   - Set monthly budget`
+      );
+      console.log(
+        `  ${chalk.yellow('toknxr budget --set 30 --provider GPT4')} - Set provider budget`
+      );
     }
   });
 
@@ -1331,12 +1547,12 @@ program
   .description('Initialize enterprise audit logging system')
   .option('--encrypt', 'Enable audit log encryption')
   .option('--retention <days>', 'Log retention period in days', '365')
-  .action((options) => {
+  .action(options => {
     try {
       initializeAuditLogging({
         encryptionEnabled: options.encrypt || false,
         retentionDays: parseInt(options.retention) || 365,
-        enabled: true
+        enabled: true,
       });
 
       // Log the initialization event
@@ -1345,8 +1561,8 @@ program
         action: 'initialization',
         settings: {
           encryptionEnabled: options.encrypt || false,
-          retentionDays: parseInt(options.retention) || 365
-        }
+          retentionDays: parseInt(options.retention) || 365,
+        },
       });
 
       console.log(chalk.green('✅ Enterprise audit logging initialized'));
@@ -1369,7 +1585,7 @@ program
   .option('-f, --from <date>', 'Filter events from date (ISO format)')
   .option('-to, --to <date>', 'Filter events to date (ISO format)')
   .option('-l, --limit <number>', 'Limit number of results', '50')
-  .action((options) => {
+  .action(options => {
     try {
       const events = auditLogger.query({
         eventType: options.type as AuditEventType,
@@ -1377,7 +1593,7 @@ program
         riskLevel: options.risk as 'low' | 'medium' | 'high' | 'critical',
         dateFrom: options.from,
         dateTo: options.to,
-        limit: parseInt(options.limit) || 50
+        limit: parseInt(options.limit) || 50,
       });
 
       if (events.length === 0) {
@@ -1401,14 +1617,21 @@ program
 
         dateEvents.forEach(event => {
           const time = new Date(event.timestamp).toLocaleTimeString();
-          const riskColor = event.riskLevel === 'critical' ? chalk.red :
-                           event.riskLevel === 'high' ? chalk.yellow :
-                           event.riskLevel === 'medium' ? chalk.blue : chalk.gray;
+          const riskColor =
+            event.riskLevel === 'critical'
+              ? chalk.red
+              : event.riskLevel === 'high'
+                ? chalk.yellow
+                : event.riskLevel === 'medium'
+                  ? chalk.blue
+                  : chalk.gray;
 
-          const resultIcon = event.result === 'success' ? '✅' :
-                           event.result === 'failure' ? '❌' : '⚠️';
+          const resultIcon =
+            event.result === 'success' ? '✅' : event.result === 'failure' ? '❌' : '⚠️';
 
-          console.log(`  ${resultIcon} ${chalk.bold(event.eventType)} ${riskColor(`[${event.riskLevel}]`)}`);
+          console.log(
+            `  ${resultIcon} ${chalk.bold(event.eventType)} ${riskColor(`[${event.riskLevel}]`)}`
+          );
           console.log(`     ${chalk.gray(time)} | ${event.action} | ${event.resource}`);
           if (event.userId) {
             console.log(`     👤 User: ${event.userId}`);
@@ -1417,7 +1640,10 @@ program
             const details = Object.entries(event.details)
               .filter(([key]) => !['method', 'component'].includes(key))
               .slice(0, 3) // Limit to 3 details
-              .map(([key, value]) => `${key}: ${typeof value === 'object' ? JSON.stringify(value) : value}`)
+              .map(
+                ([key, value]) =>
+                  `${key}: ${typeof value === 'object' ? JSON.stringify(value) : value}`
+              )
               .join(', ');
             if (details) {
               console.log(`     📋 ${details}`);
@@ -1438,15 +1664,14 @@ program
         complianceTags: ['audit', 'access_control'],
         details: {
           filterCriteria: options,
-          resultsReturned: events.length
+          resultsReturned: events.length,
         },
         metadata: {
           version: '1.0.0',
           environment: process.env.NODE_ENV || 'development',
-          component: 'audit_cli'
-        }
+          component: 'audit_cli',
+        },
       });
-
     } catch (error) {
       console.log(chalk.red('❌ Failed to retrieve audit events'));
       console.log(chalk.gray(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`));
@@ -1474,16 +1699,21 @@ program
 
       console.log(chalk.bold('\n🏷️  Risk Distribution:'));
       Object.entries(report.riskSummary).forEach(([level, count]) => {
-        const color = level === 'critical' ? chalk.red :
-                     level === 'high' ? chalk.yellow :
-                     level === 'medium' ? chalk.blue : chalk.gray;
+        const color =
+          level === 'critical'
+            ? chalk.red
+            : level === 'high'
+              ? chalk.yellow
+              : level === 'medium'
+                ? chalk.blue
+                : chalk.gray;
         console.log(`  ${color(level.charAt(0).toUpperCase() + level.slice(1))}: ${count}`);
       });
 
       if (Object.keys(report.eventsByType).length > 0) {
         console.log(chalk.bold('\n📋 Events by Type:'));
         Object.entries(report.eventsByType)
-          .sort(([,a], [,b]) => b - a)
+          .sort(([, a], [, b]) => b - a)
           .slice(0, 10) // Top 10
           .forEach(([type, count]) => {
             console.log(`  ${type}: ${count}`);
@@ -1497,7 +1727,9 @@ program
           console.log(`     ${new Date(violation.timestamp).toLocaleString()}`);
         });
         if (report.complianceViolations.length > 5) {
-          console.log(chalk.red(`     ... and ${report.complianceViolations.length - 5} more violations`));
+          console.log(
+            chalk.red(`     ... and ${report.complianceViolations.length - 5} more violations`)
+          );
         }
       }
 
@@ -1519,17 +1751,16 @@ program
         details: {
           reportPeriod: report.period,
           totalEvents: report.totalEvents,
-          violationsFound: report.complianceViolations.length
+          violationsFound: report.complianceViolations.length,
         },
         metadata: {
           version: '1.0.0',
           environment: process.env.NODE_ENV || 'development',
-          component: 'audit_cli'
-        }
+          component: 'audit_cli',
+        },
       });
 
       console.log(chalk.green('\n✅ Compliance report generated successfully'));
-
     } catch (error) {
       console.log(chalk.red('❌ Failed to generate compliance report'));
       console.log(chalk.gray(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`));
@@ -1551,7 +1782,7 @@ program
         eventType: options.type as AuditEventType,
         userId: options.user,
         dateFrom: options.from,
-        dateTo: options.to
+        dateTo: options.to,
       });
 
       if (events.length === 0) {
@@ -1584,16 +1815,15 @@ program
             eventType: options.type,
             userId: options.user,
             dateFrom: options.from,
-            dateTo: options.to
-          }
+            dateTo: options.to,
+          },
         },
         metadata: {
           version: '1.0.0',
           environment: process.env.NODE_ENV || 'development',
-          component: 'audit_cli'
-        }
+          component: 'audit_cli',
+        },
       });
-
     } catch (error) {
       console.log(chalk.red('❌ Failed to export audit data'));
       console.log(chalk.gray(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`));
@@ -1627,16 +1857,26 @@ program
       }
 
       console.log(chalk.bold('\n⚙️  System Configuration:'));
-      console.log(`  Enabled: ${auditLogger['config'].enabled ? chalk.green('Yes') : chalk.red('No')}`);
+      console.log(
+        `  Enabled: ${auditLogger['config'].enabled ? chalk.green('Yes') : chalk.red('No')}`
+      );
       console.log(`  Retention: ${auditLogger['config'].retentionDays} days`);
       console.log(`  Max File Size: ${auditLogger['config'].maxFileSize} MB`);
       console.log(`  Alert Threshold: ${auditLogger['config'].alertThresholds.riskLevelThreshold}`);
-      console.log(`  Compliance Frameworks: ${auditLogger['config'].complianceFrameworks.join(', ')}`);
+      console.log(
+        `  Compliance Frameworks: ${auditLogger['config'].complianceFrameworks.join(', ')}`
+      );
 
       console.log(chalk.bold('\n🎯 Quick Commands:'));
-      console.log(`  ${chalk.cyan('toknxr audit:view')}                    - View recent audit events`);
-      console.log(`  ${chalk.cyan('toknxr audit:report 2025-01-01 2025-01-31')} - Generate compliance report`);
-      console.log(`  ${chalk.cyan('toknxr audit:export json --output my-audit')} - Export audit data`);
+      console.log(
+        `  ${chalk.cyan('toknxr audit:view')}                    - View recent audit events`
+      );
+      console.log(
+        `  ${chalk.cyan('toknxr audit:report 2025-01-01 2025-01-31')} - Generate compliance report`
+      );
+      console.log(
+        `  ${chalk.cyan('toknxr audit:export json --output my-audit')} - Export audit data`
+      );
 
       // Log the stats access
       auditLogger.log({
@@ -1650,10 +1890,9 @@ program
         metadata: {
           version: '1.0.0',
           environment: process.env.NODE_ENV || 'development',
-          component: 'audit_cli'
-        }
+          component: 'audit_cli',
+        },
       });
-
     } catch (error) {
       console.log(chalk.red('❌ Failed to retrieve audit statistics'));
       console.log(chalk.gray(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`));

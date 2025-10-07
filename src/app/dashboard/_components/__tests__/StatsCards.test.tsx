@@ -1,7 +1,8 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import { StatsCards } from '../StatsCards';
-import { DashboardStats } from '../../_types';
+import { DashboardStats, Interaction } from '../../_types';
 
 // Mock data for testing
 const mockStats: DashboardStats = {
@@ -10,9 +11,27 @@ const mockStats: DashboardStats = {
   hallucinationFreq: 3.2,
 };
 
+const mockInteractions: Interaction[] = [
+  {
+    id: '1',
+    provider: 'openai',
+    model: 'gpt-4',
+    promptTokens: 100,
+    completionTokens: 200,
+    totalTokens: 300,
+    costUSD: 0.01,
+    taskType: 'coding',
+    qualityRating: 'useful',
+    hallucination: false,
+    timestamp: new Date('2024-01-01'),
+    codeQualityScore: 85,
+    effectivenessScore: 90,
+  },
+];
+
 describe('StatsCards', () => {
   it('renders all stat cards with correct values', () => {
-    render(<StatsCards stats={mockStats} />);
+    render(<StatsCards stats={mockStats} interactions={mockInteractions} />);
 
     // Check if all cards are rendered
     expect(screen.getByText('Total Cost')).toBeInTheDocument();
@@ -32,7 +51,7 @@ describe('StatsCards', () => {
       hallucinationFreq: 0,
     };
 
-    render(<StatsCards stats={zeroStats} />);
+    render(<StatsCards stats={zeroStats} interactions={mockInteractions} />);
 
     expect(screen.getByText('$0.0000')).toBeInTheDocument();
     expect(screen.getByText('0.0%')).toBeInTheDocument();
@@ -45,7 +64,7 @@ describe('StatsCards', () => {
       hallucinationFreq: 0.1,
     };
 
-    render(<StatsCards stats={preciseStats} />);
+    render(<StatsCards stats={preciseStats} interactions={mockInteractions} />);
 
     expect(screen.getByText('$0.1235')).toBeInTheDocument(); // 4 decimal places
     expect(screen.getByText('100.0%')).toBeInTheDocument(); // 1 decimal place

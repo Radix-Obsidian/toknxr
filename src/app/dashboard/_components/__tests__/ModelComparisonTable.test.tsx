@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import { ModelComparisonTable } from '../ModelComparisonTable';
 import { Interaction } from '../../_types';
 
@@ -117,7 +118,9 @@ describe('ModelComparisonTable', () => {
     render(<ModelComparisonTable interactions={[]} />);
 
     expect(screen.getByText('Model Comparison')).toBeInTheDocument();
-    expect(screen.getByText('No interaction data available for model comparison.')).toBeInTheDocument();
+    expect(
+      screen.getByText('No interaction data available for model comparison.')
+    ).toBeInTheDocument();
   });
 
   it('sorts models by interaction count', () => {

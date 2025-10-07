@@ -27,7 +27,7 @@ class Logger {
 
   private shouldLog(level: LogLevel): boolean {
     if (this.isDevelopment) return true;
-    
+
     // In production, only log warnings and errors
     return level === 'warn' || level === 'error';
   }
@@ -55,6 +55,7 @@ class Logger {
   }
 
   private async logToService(entry: LogEntry): Promise<void> {
+     
     // In production, you might want to send logs to a service like Sentry, LogRocket, etc.
     if (!this.isClient || this.isDevelopment) return;
 

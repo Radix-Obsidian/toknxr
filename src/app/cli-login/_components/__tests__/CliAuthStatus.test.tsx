@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import { CliAuthStatus } from '../CliAuthStatus';
 import { CliLoginState } from '../../_types';
 
@@ -14,7 +15,9 @@ describe('CliAuthStatus', () => {
     render(<CliAuthStatus state={state} />);
 
     expect(screen.getByText('TokNxr CLI Authentication')).toBeInTheDocument();
-    expect(screen.getByText('Please log in to connect your account to the TokNxr CLI.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Please log in to connect your account to the TokNxr CLI.')
+    ).toBeInTheDocument();
     expect(screen.queryByText('Success!')).not.toBeInTheDocument();
   });
 
@@ -59,12 +62,14 @@ describe('CliAuthStatus', () => {
     render(<CliAuthStatus state={state} />);
 
     expect(screen.getByText('Success!')).toBeInTheDocument();
-    expect(screen.getByText('You can now close this window and return to your terminal.')).toBeInTheDocument();
-    
+    expect(
+      screen.getByText('You can now close this window and return to your terminal.')
+    ).toBeInTheDocument();
+
     // Check for success styling
     const successDiv = screen.getByText('Success!').closest('div');
     expect(successDiv).toHaveClass('bg-green-100', 'text-green-800');
-    
+
     // Check for checkmark icon
     const checkIcon = document.querySelector('svg');
     expect(checkIcon).toBeInTheDocument();
