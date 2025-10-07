@@ -162,7 +162,7 @@ export interface OraWithProgress extends Ora {
 }
 
 /**
- * Enhanced progress indicator for operations
+ * Enhanced progress indicator for operations with animated status
  */
 export function createOperationProgress(operation: string, steps: string[]): OraWithProgress {
   const spinner = ora({
@@ -173,13 +173,36 @@ export function createOperationProgress(operation: string, steps: string[]): Ora
 
   spinner.start();
 
+  // Visual status icons that change during progress
+  const getStepIcon = (stepIndex: number, totalSteps: number): string => {
+    const progressRatio = stepIndex / totalSteps;
+
+    if (progressRatio < 0.25) return '🔍';      // Starting/Looking
+    if (progressRatio < 0.5) return '🔗';       // Connecting/Setting up
+    if (progressRatio < 0.75) return '🔄';      // Processing/Configuring
+    if (progressRatio < 0.95) return '⚡';       // Finalizing
+    return '✨';                                // Ready/Complete
+  };
+
   let currentStep = 0;
   const updateProgress = (stepIndex?: number) => {
     if (stepIndex !== undefined) {
       currentStep = stepIndex;
     }
     const progress = Math.floor((currentStep / steps.length) * 100);
-    spinner.text = `${chalk.blue(`🚀 ${operation}`)} ${chalk.gray(`[${currentStep}/${steps.length}]`)}`;
+    const icon = getStepIcon(currentStep, steps.length);
+    const stepText = steps[currentStep] || `Step ${currentStep + 1}/${steps.length}`;
+
+    spinner.text = `${icon} ${chalk.cyan(operation)} ${chalk.gray(`[${currentStep}/${steps.length}] ${stepText}`)}`;
+
+    // Add ETA estimate
+    const eta = steps.length - currentStep - 1;
+    if (eta > 0 && currentStep > 0) {
+      const avgTime = 500 * currentStep; // Estimate based on current completion
+      const etaTime = (avgTime / currentStep) * eta;
+      const etaSeconds = Math.ceil(etaTime / 1000);
+      spinner.text += chalk.dim(` (~${etaSeconds}s)`);
+    }
   };
 
   // Create extended spinner with progress tracking
@@ -257,29 +280,50 @@ export function createSuccessWithNextSteps(message: string, nextSteps: string[])
 }
 
 /**
- * Creates an ASCII chart for cost trends
+ * Creates an ASCII chart for cost trends with color-coding
  */
 export function createCostChart(weeklyCosts: number[]): string {
   const maxCost = Math.max(...weeklyCosts, 1);
-  const height = 5;
+  const height = 6;
   const chartWidth = weeklyCosts.length * 2 - 1;
 
   let chart = 'Last 7 days │\n';
   chart += '─────────────┼' + '─'.repeat(chartWidth) + '\n';
 
+  // Get dynamic color and budget zone for each day
+  const getCostColorAndZone = (cost: number) => {
+    const budget = 50.00; // Monthly budget
+    const dailyAverage = budget / 30;
+
+    if (cost >= dailyAverage * 2) return { color: chalk.red, zone: '🚨' }; // Danger
+    if (cost >= dailyAverage * 1.5) return { color: chalk.yellow, zone: '⚠️' }; // Warning
+    if (cost >= dailyAverage) return { color: chalk.blue, zone: 'ℹ️' }; // Elevated
+    return { color: chalk.green, zone: '✅' }; // Safe
+  };
+
   for (let row = height; row > 0; row--) {
-    const label = row === height ? chalk.cyan('$5.00 ') : (row === Math.floor(height/2)) ? chalk.cyan('$2.50 ') : '';
+    const label = row === height ? chalk.cyan('$5.00 ') :
+                 row === Math.floor(height*(2/3)) ? chalk.cyan('$3.40 ') :
+                 row === Math.floor(height/2) ? chalk.cyan('$1.70 ') :
+                 row === Math.floor(height/3) ? chalk.cyan('$0.80 ') : '';
     chart += `${label}│`;
 
     weeklyCosts.forEach((cost, idx) => {
       const barHeight = Math.round((cost / maxCost) * height);
-      const char = row <= barHeight ? chalk.cyan('█') : ' ';
+      const { color } = getCostColorAndZone(cost);
+      const char = row <= barHeight ? color('█') : ' ';
       chart += idx < weeklyCosts.length - 1 ? char + ' ' : char;
     });
     chart += '\n';
   }
 
-  return createBox('📈 Cost Trends', chart, {padding: 0});
+  // Add budget zone summary at bottom
+  const averageCost = weeklyCosts.reduce((sum, cost) => sum + cost, 0) / weeklyCosts.length;
+  const { color, zone } = getCostColorAndZone(averageCost);
+
+  chart += '\n💰 Daily Average: ' + color(`$${averageCost.toFixed(2)}`) + ` ${zone}`;
+
+  return createBox('📈 Weekly Cost Trends', chart, {padding: 0});
 }
 
 /**
