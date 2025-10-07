@@ -1,9 +1,4 @@
-export {
-  QualityBadge,
-  EffectivenessBadge,
-  HallucinationBadge,
-  ProviderBadge,
-  CostBadge,
-  type QualityLevel,
-  type BadgeVariant,
-} from './QualityBadge';
+'use client';
+
+export * from './QualityBadge';
+export * from './WorthItBadge';

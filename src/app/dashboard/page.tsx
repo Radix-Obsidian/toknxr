@@ -3,7 +3,13 @@
 import React from 'react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { PerformanceMonitor } from '@/components/performance/PerformanceMonitor';
-import { DashboardNav, StatsCards, InteractionTracker, InteractionHistory, ModelComparisonTable } from './_components';
+import {
+  DashboardNav,
+  StatsCards,
+  InteractionTracker,
+  InteractionHistory,
+  ModelComparisonTable,
+} from './_components';
 import { useDashboardData } from './_hooks';
 
 export default function DashboardPage() {
@@ -27,14 +33,24 @@ export default function DashboardPage() {
       <PerformanceMonitor routeName="dashboard" />
       <div className="min-h-screen bg-gray-50">
         <DashboardNav />
-        
+
         <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
           {interactions.length === 0 && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
               <div className="flex items-start">
                 <div className="flex-shrink-0">
-                  <svg className="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <svg
+                    className="h-6 w-6 text-blue-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
                   </svg>
                 </div>
                 <div className="ml-3">
@@ -55,7 +71,7 @@ export default function DashboardPage() {
             </div>
           )}
 
-          <StatsCards stats={stats} />
+          <StatsCards stats={stats} interactions={interactions} />
           <InteractionTracker onInteractionTracked={refetch} />
           <ModelComparisonTable interactions={interactions} className="mt-8" />
           <InteractionHistory interactions={interactions} />

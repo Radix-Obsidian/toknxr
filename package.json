@@ -2,11 +2,33 @@
   "name": "ToknXR-CLI",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "npm@10.8.2",
+  "workspaces": [
+    "toknxr-cli"
+  ],
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
+    "build": "turbo build",
+    "build:web": "next build --turbopack",
+    "build:cli": "turbo build --filter=toknxr-cli",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "turbo lint",
+    "lint:fix": "eslint --fix",
+    "test": "turbo test",
+    "typecheck": "turbo typecheck",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md}\"",
+    "cli:dev": "turbo dev --filter=@goldensheepai/toknxr-cli",
+    "prepare": "husky install"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "prettier --config .prettierrc.json --write",
+      "eslint --fix"
+    ],
+    "*.{json,md}": [
+      "prettier --config .prettierrc.json --write"
+    ]
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.47.1",
@@ -26,7 +48,11 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.5.4",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.3",
+    "prettier": "^3.6.2",
     "tailwindcss": "^4",
+    "turbo": "^2.5.8",
     "typescript": "^5"
   }
 }

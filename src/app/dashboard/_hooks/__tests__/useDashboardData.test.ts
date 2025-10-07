@@ -1,7 +1,7 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { useDashboardData } from '../useDashboardData';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/supabase';
+import { useAuth } from '../../../hooks/useAuth';
+import { supabase } from '../../../supabase';
 
 // Mock Supabase
 jest.mock('@/supabase', () => ({
@@ -49,15 +49,15 @@ describe('useDashboardData', () => {
   it('sets loading to true initially when user exists and then false after fetching', async () => {
     const mockUser = { id: 'test-uid' };
     mockUseAuth.mockReturnValue({
-        user: mockUser as any,
-        loading: false,
-        signIn: jest.fn(),
-        signUp: jest.fn(),
-        signInWithGoogle: jest.fn(),
-        signInWithGithub: jest.fn(),
-        logout: jest.fn(),
-        resetPassword: jest.fn(),
-        updateUserProfile: jest.fn(),
+      user: mockUser as any,
+      loading: false,
+      signIn: jest.fn(),
+      signUp: jest.fn(),
+      signInWithGoogle: jest.fn(),
+      signInWithGithub: jest.fn(),
+      logout: jest.fn(),
+      resetPassword: jest.fn(),
+      updateUserProfile: jest.fn(),
     });
 
     const { result } = renderHook(() => useDashboardData());
@@ -72,15 +72,15 @@ describe('useDashboardData', () => {
   it('calculates stats correctly from interactions', async () => {
     const mockUser = { id: 'test-uid' };
     mockUseAuth.mockReturnValue({
-        user: mockUser as any,
-        loading: false,
-        signIn: jest.fn(),
-        signUp: jest.fn(),
-        signInWithGoogle: jest.fn(),
-        signInWithGithub: jest.fn(),
-        logout: jest.fn(),
-        resetPassword: jest.fn(),
-        updateUserProfile: jest.fn(),
+      user: mockUser as any,
+      loading: false,
+      signIn: jest.fn(),
+      signUp: jest.fn(),
+      signInWithGoogle: jest.fn(),
+      signInWithGithub: jest.fn(),
+      logout: jest.fn(),
+      resetPassword: jest.fn(),
+      updateUserProfile: jest.fn(),
     });
 
     const mockInteractions = [
@@ -104,7 +104,9 @@ describe('useDashboardData', () => {
       },
     ];
 
-    (supabase.from('interactions').select('*').eq('user_id', 'test-uid').order as jest.Mock).mockResolvedValue({ data: mockInteractions, error: null });
+    (
+      supabase.from('interactions').select('*').eq('user_id', 'test-uid').order as jest.Mock
+    ).mockResolvedValue({ data: mockInteractions, error: null });
 
     const { result } = renderHook(() => useDashboardData());
 
@@ -119,15 +121,15 @@ describe('useDashboardData', () => {
 
   it('provides refetch function', () => {
     mockUseAuth.mockReturnValue({
-        user: null,
-        loading: false,
-        signIn: jest.fn(),
-        signUp: jest.fn(),
-        signInWithGoogle: jest.fn(),
-        signInWithGithub: jest.fn(),
-        logout: jest.fn(),
-        resetPassword: jest.fn(),
-        updateUserProfile: jest.fn(),
+      user: null,
+      loading: false,
+      signIn: jest.fn(),
+      signUp: jest.fn(),
+      signInWithGoogle: jest.fn(),
+      signInWithGithub: jest.fn(),
+      logout: jest.fn(),
+      resetPassword: jest.fn(),
+      updateUserProfile: jest.fn(),
     });
 
     const { result } = renderHook(() => useDashboardData());

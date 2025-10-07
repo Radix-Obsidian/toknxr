@@ -1,7 +1,13 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { QualityBadge, ProviderBadge, CostBadge, HallucinationBadge } from '@/components/ui';
+import {
+  QualityBadge,
+  ProviderBadge,
+  CostBadge,
+  HallucinationBadge,
+  WorthItBadge,
+} from '@/components/ui';
 import { Interaction } from '../_types/dashboard';
 
 interface ModelStats {
@@ -15,6 +21,7 @@ interface ModelStats {
   hallucinationRate: number;
   avgCostPerToken: number;
   avgCostPerInteraction: number;
+  worthItScore: number;
   qualityDistribution: {
     excellent: number;
     good: number;
@@ -31,10 +38,11 @@ interface ModelComparisonTableProps {
 export function ModelComparisonTable({ interactions, className }: ModelComparisonTableProps) {
   const modelStats = useMemo(() => {
     const statsMap = new Map<string, ModelStats>();
+    let maxCost = 0;
 
-    interactions.forEach((interaction) => {
+    interactions.forEach(interaction => {
       const key = `${interaction.provider}-${interaction.model}`;
-      
+
       if (!statsMap.has(key)) {
         statsMap.set(key, {
           provider: interaction.provider,
@@ -47,6 +55,7 @@ export function ModelComparisonTable({ interactions, className }: ModelCompariso
           hallucinationRate: 0,
           avgCostPerToken: 0,
           avgCostPerInteraction: 0,
+          worthItScore: 0,
           qualityDistribution: {
             excellent: 0,
             good: 0,
@@ -61,37 +70,48 @@ export function ModelComparisonTable({ interactions, className }: ModelCompariso
       stats.totalTokens += interaction.totalTokens;
       stats.totalCost += interaction.costUSD || 0;
 
-      // Quality score tracking (assuming we have quality scores)
       const qualityScore = (interaction as any).codeQualityScore || 0;
       const effectivenessScore = (interaction as any).effectivenessScore || 0;
-      
+
       stats.avgQualityScore += qualityScore;
       stats.avgEffectivenessScore += effectivenessScore;
 
-      // Quality distribution
       if (qualityScore >= 90) stats.qualityDistribution.excellent += 1;
       else if (qualityScore >= 75) stats.qualityDistribution.good += 1;
       else if (qualityScore >= 60) stats.qualityDistribution.fair += 1;
       else stats.qualityDistribution.poor += 1;
 
-      // Hallucination tracking
       if (interaction.hallucination) {
         stats.hallucinationRate += 1;
       }
     });
 
-    // Calculate averages
-    statsMap.forEach((stats) => {
+    statsMap.forEach(stats => {
       if (stats.totalInteractions > 0) {
         stats.avgQualityScore = Math.round(stats.avgQualityScore / stats.totalInteractions);
-        stats.avgEffectivenessScore = Math.round(stats.avgEffectivenessScore / stats.totalInteractions);
+        stats.avgEffectivenessScore = Math.round(
+          stats.avgEffectivenessScore / stats.totalInteractions
+        );
         stats.hallucinationRate = (stats.hallucinationRate / stats.totalInteractions) * 100;
         stats.avgCostPerToken = stats.totalCost / stats.totalTokens;
         stats.avgCostPerInteraction = stats.totalCost / stats.totalInteractions;
+        if (stats.totalCost > maxCost) {
+          maxCost = stats.totalCost;
+        }
       }
     });
 
-    return Array.from(statsMap.values()).sort((a, b) => b.totalInteractions - a.totalInteractions);
+    statsMap.forEach(stats => {
+      if (maxCost > 0) {
+        const normalizedCost = (stats.totalCost / maxCost) * 100;
+        stats.worthItScore =
+          stats.avgQualityScore * 0.4 + stats.avgEffectivenessScore * 0.4 - normalizedCost * 0.2;
+      } else {
+        stats.worthItScore = stats.avgQualityScore * 0.4 + stats.avgEffectivenessScore * 0.4;
+      }
+    });
+
+    return Array.from(statsMap.values()).sort((a, b) => b.worthItScore - a.worthItScore);
   }, [interactions]);
 
   if (modelStats.length === 0) {
@@ -134,6 +154,9 @@ export function ModelComparisonTable({ interactions, className }: ModelCompariso
                 Model
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Worth It Score
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Usage
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -155,16 +178,21 @@ export function ModelComparisonTable({ interactions, className }: ModelCompariso
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {modelStats.map((stats, index) => (
-              <tr key={`${stats.provider}-${stats.model}`} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                {/* Model Info */}
+              <tr
+                key={`${stats.provider}-${stats.model}`}
+                className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
+              >
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex flex-col space-y-1">
-                    <ProviderBadge 
-                      provider={stats.provider} 
+                    <ProviderBadge
+                      provider={stats.provider}
                       performance={getPerformanceLevel(stats.avgQualityScore)}
                     />
                     <span className="text-sm font-medium text-gray-900">{stats.model}</span>
                   </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <WorthItBadge score={stats.worthItScore} />
                 </td>
 
                 {/* Usage Stats */}
@@ -182,17 +210,13 @@ export function ModelComparisonTable({ interactions, className }: ModelCompariso
 
                 {/* Effectiveness */}
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <QualityBadge 
-                    score={stats.avgEffectivenessScore} 
-                    size="sm"
-                    variant="outline"
-                  />
+                  <QualityBadge score={stats.avgEffectivenessScore} size="sm" variant="outline" />
                 </td>
 
                 {/* Cost Efficiency */}
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex flex-col space-y-1">
-                    <CostBadge 
+                    <CostBadge
                       cost={stats.avgCostPerInteraction}
                       efficiency={getCostEfficiency(stats.avgCostPerToken)}
                       size="sm"
@@ -205,7 +229,7 @@ export function ModelComparisonTable({ interactions, className }: ModelCompariso
 
                 {/* Hallucinations */}
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <HallucinationBadge 
+                  <HallucinationBadge
                     detected={stats.hallucinationRate > 0}
                     confidence={Math.round(stats.hallucinationRate)}
                     size="sm"
@@ -250,7 +274,9 @@ export function ModelComparisonTable({ interactions, className }: ModelCompariso
       <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
         <div className="flex justify-between items-center text-sm text-gray-600">
           <span>
-            Showing {modelStats.length} model{modelStats.length !== 1 ? 's' : ''} across {new Set(modelStats.map(s => s.provider)).size} provider{new Set(modelStats.map(s => s.provider)).size !== 1 ? 's' : ''}
+            Showing {modelStats.length} model{modelStats.length !== 1 ? 's' : ''} across{' '}
+            {new Set(modelStats.map(s => s.provider)).size} provider
+            {new Set(modelStats.map(s => s.provider)).size !== 1 ? 's' : ''}
           </span>
           <span>
             Total: {modelStats.reduce((sum, s) => sum + s.totalInteractions, 0)} interactions

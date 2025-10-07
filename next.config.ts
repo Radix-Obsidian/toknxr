@@ -1,9 +1,9 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   // Serverless optimization
   output: 'standalone',
-  
+
   // Performance optimizations
   // serverExternalPackages: [], // No external packages needed for Supabase
 
@@ -18,10 +18,30 @@ const nextConfig: NextConfig = {
     unoptimized: false,
     // domains: [], // Add Supabase storage domains if needed
   },
-  
+
   // Compression
   compress: true,
-  
+
+  // Exclude Supabase functions (Deno code) from Next.js build
+  experimental: {
+    turbo: {
+      root: process.cwd(),
+    },
+  },
+
+  // Exclude supabase functions from webpack build
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      // Exclude supabase directory from server-side bundles
+      config.externals = config.externals || [];
+      config.externals.push({
+        'supabase/**/*': 'commonjs supabase/**/*',
+      });
+    }
+
+    return config;
+  },
+
   // Headers for security
   async headers() {
     return [
