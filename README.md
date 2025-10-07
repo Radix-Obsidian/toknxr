@@ -1,7 +1,7 @@
 # TokNxr
 
 [![License](https://img.shields.io/github/license/Radix-Obsidian/toknxr)](https://github.com/Radix-Obsidian/toknxr/blob/main/LICENSE)
-[![Node.js Version](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org/)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%D320-brightgreen)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)](https://www.typescriptlang.org/)
 
 TokNxr is an open-source AI effectiveness & code quality analysis system that tracks AI token usage AND measures the actual effectiveness and quality of AI-generated code. It goes beyond simple cost tracking to help developers understand "what you got for what you paid" in terms of software development outcomes.
@@ -29,12 +29,9 @@ cd toknxr
 # Install dependencies
 npm install
 
-# Install Firebase Functions dependencies
-cd functions && npm install && cd ..
-
 # Set up environment variables
 cp .env.example .env.local
-# Edit .env.local with your Firebase credentials
+# Edit .env.local with your Supabase/Firebase credentials
 ```
 
 ---
@@ -49,19 +46,11 @@ The `toknxr-cli` is a powerful, local-first tool for tracking token usage from a
 - **Local-First:** All data is logged to a local `interactions.log` file. No cloud account needed.
 - **Simple Stats:** A built-in `stats` command provides a clean summary of your token usage by provider.
 
-### How it Works
-
-1.  You configure your AI providers in `toknxr-cli/toknxr.config.json`.
-2.  You start the `toknxr-cli` proxy server.
-3.  You point your application's API requests to the local proxy server instead of the AI provider's URL.
-4.  The proxy logs the token usage from the response and then passes the response back to your application.
-5.  You can view your aggregated stats at any time.
-
 ### Getting Started with the CLI
 
 **1. Configure Your Providers**
 
-Edit the `toknxr-cli/toknxr.config.json` file. Add the providers you want to track. You can define the `routePrefix` the proxy will listen on, the `targetUrl` of the real API, and how to map the token data from the provider's response.
+Edit the `toknxr-cli/toknxr.config.json` file to add the providers you want to track.
 
 ```json
 {
@@ -77,22 +66,12 @@ Edit the `toknxr-cli/toknxr.config.json` file. Add the providers you want to tra
         "completion": "usageMetadata.candidatesTokenCount",
         "total": "usageMetadata.totalTokenCount"
       }
-    },
-    {
-      "name": "Ollama-Llama3",
-      "routePrefix": "/ollama",
-      "targetUrl": "http://localhost:11434/api/chat",
-      "apiKeyEnvVar": null,
-      "tokenMapping": {
-        "prompt": "prompt_eval_count",
-        "completion": "eval_count"
-      }
     }
   ]
 }
 ```
 
-### 2. Start the Proxy Server
+**2. Start the Proxy Server**
 
 ```bash
 # Set your API keys
@@ -102,29 +81,11 @@ export GEMINI_API_KEY="your_api_key_here"
 npm run start --prefix toknxr-cli
 ```
 
-### 3. Update Your Application
+**3. Update Your Application**
 
-Point your AI requests to the local proxy:
+Point your AI requests to the local proxy (e.g., `http://localhost:8787/gemini/...`).
 
-```javascript
-// Before
-const response = await fetch(
-  'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
-  {
-    // your request
-  }
-);
-
-// After
-const response = await fetch(
-  'http://localhost:8787/gemini/v1beta/models/gemini-pro:generateContent',
-  {
-    // same request - proxy handles the rest
-  }
-);
-```
-
-### 4. View Analytics
+**4. View Analytics**
 
 ```bash
 # Basic stats
@@ -163,13 +124,6 @@ npm run cli --prefix toknxr-cli -- code-analysis
 # └─ Recommendations: 3 suggestions available
 ```
 
-### Real-time Dashboard
-
-```bash
-# Access web dashboard at http://localhost:8787/dashboard
-npm run start --prefix toknxr-cli
-```
-
 ## 🌐 Web Dashboard
 
 ### Development Setup
@@ -185,19 +139,6 @@ cp .env.example .env.local
 # Start development servers
 npm run dev          # Next.js app (http://localhost:3000)
 supabase start       # Supabase local development
-```
-
-### Environment Variables
-
-Create `.env.local`:
-
-```bash
-# Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
-
-# Supabase Service Role (for server-side)
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 ```
 
 ### Deployment
@@ -239,18 +180,8 @@ supabase functions deploy
 ```
 toknxr/
 ├── src/                           # Next.js web application
-│   ├── app/                       # App Router pages
-│   ├── components/                # React components
-│   ├── lib/                       # Utilities and configurations
-│   └── supabase.ts                # Supabase client configuration
 ├── toknxr-cli/                    # Standalone CLI tool
-│   ├── src/                       # CLI source code
-│   ├── toknxr.config.json         # Provider configurations
-│   └── interactions.log           # Local interaction storage
 ├── supabase/                      # Supabase configuration
-│   ├── config.toml                # Supabase project config
-│   ├── migrations/                # Database migrations
-│   └── functions/                 # Edge functions
 └── public/                        # Static assets
 ```
 
@@ -260,28 +191,11 @@ We welcome contributions! TokNxr is open source and community-driven.
 
 ### How to Contribute
 
-1. **Fork the repository**
-2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
-3. **Make your changes** and add tests if applicable
-4. **Commit your changes**: `git commit -m 'Add amazing feature'`
-5. **Push to the branch**: `git push origin feature/amazing-feature`
-6. **Open a Pull Request**
-
-### Development Setup
-
-```bash
-# Clone your fork
-git clone https://github.com/Radix-Obsidian/toknxr.git
-cd toknxr
-
-# Install dependencies
-npm install
-npm install --prefix toknxr-cli
-
-# Start development
-npm run dev          # Web app
-npm run start --prefix toknxr-cli  # CLI proxy
-```
+1.  **Fork the repository**
+2.  **Create a feature branch**: `git checkout -b feature/amazing-feature`
+3.  **Commit your changes**: `git commit -m 'Add amazing feature'`
+4.  **Push to the branch**: `git push origin feature/amazing-feature`
+5.  **Open a Pull Request**
 
 ### Areas for Contribution
 
@@ -289,21 +203,6 @@ npm run start --prefix toknxr-cli  # CLI proxy
 - **Language Support**: Extend code analysis to more programming languages
 - **Dashboard Features**: Enhance the web interface
 - **Documentation**: Improve guides and examples
-- **Testing**: Add comprehensive test coverage
-
-## 📚 Documentation
-
-### Getting Started
-
-- **[Quick Start Guide](#getting-started)** - Get up and running quickly
-- **[Configuration Guide](#configure-ai-providers)** - Set up AI providers
-- **[CLI Commands](#cli-commands)** - Command reference
-
-### Advanced Topics
-
-- **[Web Dashboard Setup](#web-dashboard)** - Deploy the analytics dashboard
-- **[Architecture Overview](#architecture)** - System design and components
-- **[Contributing Guide](#contributing)** - How to contribute to the project
 
 ## 🔒 Security
 
@@ -319,7 +218,6 @@ npm run start --prefix toknxr-cli  # CLI proxy
 - [ ] **Team Collaboration**: Shared analytics and team dashboards
 - [ ] **Plugin System**: Extensible architecture for custom analyzers
 - [ ] **CI/CD Integration**: GitHub Actions and GitLab CI support
-- [ ] **Enterprise Features**: SSO, audit logs, advanced security
 
 ## 📄 License
 
