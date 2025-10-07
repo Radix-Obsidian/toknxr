@@ -1,6 +1,28 @@
 // Simple vanilla JavaScript dashboard for browser compatibility
 // This creates a pure HTML/CSS/JS dashboard that works without React
 
+interface ProviderData {
+  cost: number;
+  interactions: number;
+  avgQuality?: number;
+  avgEffectiveness?: number;
+  costUSD?: number;
+  requestCount?: number;
+}
+
+interface Interaction {
+  provider: string;
+  model: string;
+  qualityScore?: number;
+  effectivenessScore?: number;
+  userPrompt: string;
+  aiResponse: string;
+  timestamp: string;
+  taskType?: string;
+  cost: number;
+  hallucination?: boolean;
+}
+
 function createDashboard() {
   const COLORS = {
     primary: '#6B5BED',
@@ -15,26 +37,10 @@ function createDashboard() {
     textMuted: '#94A3B8'
   };
 
-  let stats = null;
   let lastUpdated = new Date();
 
-  // Create stat card HTML
-  function createStatCard(title: string, value: string | number, icon: string, color: string = COLORS.primary) {
-    return `
-      <div style="background: ${COLORS.surface}; border-radius: 12px; padding: 24px; border: 1px solid ${color}20; box-shadow: 0 4px 6px -1px ${color}10;">
-        <div style="display: flex; align-items: center; justify-content: space-between;">
-          <div>
-            <p style="color: ${COLORS.textMuted}; font-size: 14px; margin: 0 0 8px 0;">${title}</p>
-            <p style="font-size: 32px; font-weight: bold; margin: 0; color: ${COLORS.text};">${value}</p>
-          </div>
-          <div style="font-size: 24px; color: ${color}; opacity: 0.8;">${icon}</div>
-        </div>
-      </div>
-    `;
-  }
-
   // Create provider card HTML
-  function createProviderChart(name: string, data: any) {
+  function createProviderChart(name: string, data: ProviderData) {
     return `
       <div style="background: ${COLORS.surface}; border-radius: 8px; padding: 16px; border: 1px solid ${COLORS.primary}20;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
@@ -51,7 +57,7 @@ function createDashboard() {
   }
 
   // Create recent activity HTML with prompt previews
-  function createRecentActivity(interactions: any[]) {
+  function createRecentActivity(interactions: Interaction[]) {
     const recentHTML = interactions.slice(-10).map((interaction: any, i: number) => {
       const qualityColor = !interaction.qualityScore ? COLORS.textMuted :
         interaction.qualityScore >= 90 ? COLORS.success :
@@ -141,12 +147,12 @@ function createDashboard() {
       // Update provider cards
       const providerContainer = document.getElementById('provider-container');
       if (providerContainer && data.totals.byProvider) {
-        const providerHTML = Object.entries(data.totals.byProvider).map(([name, providerData]) =>
+        const providerHTML = Object.entries(data.totals.byProvider).map(([name, providerData]: [string, any]) =>
           createProviderChart(name, {
             cost: (providerData as any).costUSD || 0,
             interactions: (providerData as any).requestCount || 0,
-            avgQuality: (providerData as any).avgQualityScore,
-            avgEffectiveness: (providerData as any).avgEffectivenessScore
+            avgQuality: (providerData as any).avgQuality,
+            avgEffectiveness: (providerData as any).avgEffectiveness
           })
         ).join('');
         providerContainer.innerHTML = providerHTML;
@@ -286,6 +292,7 @@ function createDashboard() {
 }
 
 // Modal for showing prompt details
+// @ts-ignore
   function showPromptDetails(provider: string, model: string, userPrompt: string, aiResponse: string, qualityScore: number, effectivenessScore: number, taskType: string, cost: number) {
   const modal = document.createElement('div');
   modal.id = 'prompt-modal';
@@ -368,6 +375,7 @@ function closePromptModal() {
 }
 
 // Filter prompts based on search and provider filter
+// @ts-ignore
 function filterPrompts() {
   const searchTermValue = (document.getElementById('prompt-search') as HTMLInputElement)?.value.toLowerCase() || '';
   const providerFilterValue = (document.getElementById('provider-filter') as HTMLSelectElement)?.value || '';

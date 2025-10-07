@@ -1,0 +1,243 @@
+[1mnpm[22m [33mwarn[39m [94mconfig[39m ignoring workspace config at /Users/saintaugustine/ToknXR-CLI/toknxr-cli/.npmrc
+
+> @goldensheepai/toknxr-cli@0.2.0 dev
+> tsx watch src/cli.ts
+
+[1G[0K
+[34m  ████████╗[39m[38;2;107;91;237m  ██████╗ [39m[38;2;155;91;237m ██╗  ██╗[39m[38;2;203;91;237m ███╗   ██╗[39m[38;2;237;91;155m ██╗  ██╗[39m[38;2;237;91;107m ██████╗ [39m
+[34m  ╚══██╔══╝[39m[38;2;107;91;237m ██╔═══██╗[39m[38;2;155;91;237m ██║ ██╔╝[39m[38;2;203;91;237m ████╗  ██║[39m[38;2;237;91;155m ╚██╗██╔╝[39m[38;2;237;91;107m ██╔══██╗[39m
+[34m     ██║   [39m[38;2;107;91;237m ██║   ██║[39m[38;2;155;91;237m █████╔╝ [39m[38;2;203;91;237m ██╔██╗ ██║[39m[38;2;237;91;155m  ╚███╔╝ [39m[38;2;237;91;107m ██████╔╝[39m
+[34m     ██║   [39m[38;2;107;91;237m ██║   ██║[39m[38;2;155;91;237m ██╔═██╗ [39m[38;2;203;91;237m ██║╚██╗██║[39m[38;2;237;91;155m  ██╔██╗ [39m[38;2;237;91;107m ██╔══██╗[39m
+[34m     ██║   [39m[38;2;107;91;237m ╚██████╔╝[39m[38;2;155;91;237m ██║  ██╗[39m[38;2;203;91;237m ██║ ╚████║[39m[38;2;237;91;155m ██╔╝ ██╗[39m[38;2;237;91;107m ██║  ██║[39m
+[34m     ╚═╝   [39m[38;2;107;91;237m  ╚═════╝ [39m[38;2;155;91;237m ╚═╝  ╚═╝[39m[38;2;203;91;237m ╚═╝  ╚═══╝[39m[38;2;237;91;155m ╚═╝  ╚═╝[39m[38;2;237;91;107m ╚═╝  ╚═╝[39m
+
+[36mTips for getting started:[39m
+[37m1. Start tracking:[39m [33mtoknxr start[39m [90m- Launch the proxy server[39m
+[37m2. View analytics:[39m [33mtoknxr stats[39m [90m- See token usage and code quality[39m
+[37m3. Deep dive:[39m [33mtoknxr code-analysis[39m [90m- Detailed quality insights[39m
+[37m4. Code review:[39m [33mtoknxr review[39m [90m- Review AI-generated code[39m
+[37m5. Login:[39m [33mtoknxr login[39m [90m- Authenticate with your account[39m
+[37m6. Set limits:[39m [33mtoknxr policy:init[39m [90m- Configure spending policies[39m
+[37m7. Need help?[39m [33mtoknxr --help[39m [90m- View all commands[39m
+
+[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[39m
+
+[38;2;255;215;0m🐑 Powered by Golden Sheep AI[39m
+
+
+Usage: toknxr [options] [command]
+
+AI Effectiveness & Code Quality Analysis CLI
+
+Options:
+  -V, --version                          output the version number
+  -h, --help                             display help for command
+
+Commands:
+  start                                  Start the TokNxr proxy server to monitor AI
+                                         interactions.
+  sync [options]                         Sync local interaction logs to the Supabase
+                                         dashboard.
+  stats                                  Display token usage statistics from the local log.
+  init                                   Scaffold .env and toknxr.config.json in the current
+                                         directory
+  tail                                   Follow interactions.log and pretty-print new lines
+  dashboard                              Open the minimal dashboard served by the proxy
+                                         (/dashboard)
+  policy:init                            Scaffold toknxr.policy.json from the foundation
+                                         starter pack if missing
+  code-analysis                          Show detailed code quality analysis from coding
+                                         interactions
+  login                                  Authenticate with your TokNxr account
+  analyze [options] <prompt> <response>  Analyze an AI response for hallucinations and quality
+                                         issues
+  quality [options] <code>               Analyze code quality metrics
+  effectiveness <prompt> <response>      Score AI response effectiveness
+  hallucinations [options]               Show hallucination statistics and trends
+  providers                              Compare AI provider performance
+  export [options]                       Export analytics data to JSON file
+  help [command]                         display help for command
+[90m12:20:54 AM[39m [96m[tsx][39m [95mchange[39m in [92m./src/cli.ts[39m [33mRerunning...[39m
+cnode:internal/modules/cjs/loader:1423
+  throw err;
+  ^
+
+Error: Cannot find module '/Users/saintaugustine/ToknXR-CLI/toknxr-cli/node_modules/tsx/dist/preflight.cjs'
+Require stack:
+- internal/preload
+[90m    at Module._resolveFilename (node:internal/modules/cjs/loader:1420:15)[39m
+[90m    at defaultResolveImpl (node:internal/modules/cjs/loader:1058:19)[39m
+[90m    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1063:22)[39m
+[90m    at Module._load (node:internal/modules/cjs/loader:1226:37)[39m
+[90m    at TracingChannel.traceSync (node:diagnostics_channel:322:14)[39m
+[90m    at wrapModuleLoad (node:internal/modules/cjs/loader:244:24)[39m
+[90m    at Module.require (node:internal/modules/cjs/loader:1503:12)[39m
+[90m    at node:internal/modules/cjs/loader:2046:12[39m
+[90m    at loadPreloadModules (node:internal/process/pre_execution:686:5)[39m
+[90m    at setupUserModules (node:internal/process/pre_execution:205:5)[39m {
+  code: [32m'MODULE_NOT_FOUND'[39m,
+  requireStack: [ [32m'internal/preload'[39m ]
+}
+
+Node.js v24.8.0
+[90m12:21:15 AM[39m [96m[tsx][39m [95mchange[39m in [92m./src/cli.ts[39m [33mRerunning...[39m
+cnode:internal/modules/cjs/loader:1423
+  throw err;
+  ^
+
+Error: Cannot find module '/Users/saintaugustine/ToknXR-CLI/toknxr-cli/node_modules/tsx/dist/preflight.cjs'
+Require stack:
+- internal/preload
+[90m    at Module._resolveFilename (node:internal/modules/cjs/loader:1420:15)[39m
+[90m    at defaultResolveImpl (node:internal/modules/cjs/loader:1058:19)[39m
+[90m    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1063:22)[39m
+[90m    at Module._load (node:internal/modules/cjs/loader:1226:37)[39m
+[90m    at TracingChannel.traceSync (node:diagnostics_channel:322:14)[39m
+[90m    at wrapModuleLoad (node:internal/modules/cjs/loader:244:24)[39m
+[90m    at Module.require (node:internal/modules/cjs/loader:1503:12)[39m
+[90m    at node:internal/modules/cjs/loader:2046:12[39m
+[90m    at loadPreloadModules (node:internal/process/pre_execution:686:5)[39m
+[90m    at setupUserModules (node:internal/process/pre_execution:205:5)[39m {
+  code: [32m'MODULE_NOT_FOUND'[39m,
+  requireStack: [ [32m'internal/preload'[39m ]
+}
+
+Node.js v24.8.0
+[90m12:21:36 AM[39m [96m[tsx][39m [95mchange[39m in [92m./src/cli.ts[39m [33mRerunning...[39m
+cnode:internal/modules/cjs/loader:1423
+  throw err;
+  ^
+
+Error: Cannot find module '/Users/saintaugustine/ToknXR-CLI/toknxr-cli/node_modules/tsx/dist/preflight.cjs'
+Require stack:
+- internal/preload
+[90m    at Module._resolveFilename (node:internal/modules/cjs/loader:1420:15)[39m
+[90m    at defaultResolveImpl (node:internal/modules/cjs/loader:1058:19)[39m
+[90m    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1063:22)[39m
+[90m    at Module._load (node:internal/modules/cjs/loader:1226:37)[39m
+[90m    at TracingChannel.traceSync (node:diagnostics_channel:322:14)[39m
+[90m    at wrapModuleLoad (node:internal/modules/cjs/loader:244:24)[39m
+[90m    at Module.require (node:internal/modules/cjs/loader:1503:12)[39m
+[90m    at node:internal/modules/cjs/loader:2046:12[39m
+[90m    at loadPreloadModules (node:internal/process/pre_execution:686:5)[39m
+[90m    at setupUserModules (node:internal/process/pre_execution:205:5)[39m {
+  code: [32m'MODULE_NOT_FOUND'[39m,
+  requireStack: [ [32m'internal/preload'[39m ]
+}
+
+Node.js v24.8.0
+[90m12:21:58 AM[39m [96m[tsx][39m [95mchange[39m in [92m./src/cli.ts[39m [33mRerunning...[39m
+cnode:internal/modules/cjs/loader:1423
+  throw err;
+  ^
+
+Error: Cannot find module '/Users/saintaugustine/ToknXR-CLI/toknxr-cli/node_modules/tsx/dist/preflight.cjs'
+Require stack:
+- internal/preload
+[90m    at Module._resolveFilename (node:internal/modules/cjs/loader:1420:15)[39m
+[90m    at defaultResolveImpl (node:internal/modules/cjs/loader:1058:19)[39m
+[90m    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1063:22)[39m
+[90m    at Module._load (node:internal/modules/cjs/loader:1226:37)[39m
+[90m    at TracingChannel.traceSync (node:diagnostics_channel:322:14)[39m
+[90m    at wrapModuleLoad (node:internal/modules/cjs/loader:244:24)[39m
+[90m    at Module.require (node:internal/modules/cjs/loader:1503:12)[39m
+[90m    at node:internal/modules/cjs/loader:2046:12[39m
+[90m    at loadPreloadModules (node:internal/process/pre_execution:686:5)[39m
+[90m    at setupUserModules (node:internal/process/pre_execution:205:5)[39m {
+  code: [32m'MODULE_NOT_FOUND'[39m,
+  requireStack: [ [32m'internal/preload'[39m ]
+}
+
+Node.js v24.8.0
+[90m12:25:57 AM[39m [96m[tsx][39m [95mchange[39m in [92m./src/cli.ts[39m [33mRerunning...[39m
+cnode:internal/modules/cjs/loader:1423
+  throw err;
+  ^
+
+Error: Cannot find module '/Users/saintaugustine/ToknXR-CLI/toknxr-cli/node_modules/tsx/dist/preflight.cjs'
+Require stack:
+- internal/preload
+[90m    at Module._resolveFilename (node:internal/modules/cjs/loader:1420:15)[39m
+[90m    at defaultResolveImpl (node:internal/modules/cjs/loader:1058:19)[39m
+[90m    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1063:22)[39m
+[90m    at Module._load (node:internal/modules/cjs/loader:1226:37)[39m
+[90m    at TracingChannel.traceSync (node:diagnostics_channel:322:14)[39m
+[90m    at wrapModuleLoad (node:internal/modules/cjs/loader:244:24)[39m
+[90m    at Module.require (node:internal/modules/cjs/loader:1503:12)[39m
+[90m    at node:internal/modules/cjs/loader:2046:12[39m
+[90m    at loadPreloadModules (node:internal/process/pre_execution:686:5)[39m
+[90m    at setupUserModules (node:internal/process/pre_execution:205:5)[39m {
+  code: [32m'MODULE_NOT_FOUND'[39m,
+  requireStack: [ [32m'internal/preload'[39m ]
+}
+
+Node.js v24.8.0
+[90m12:26:15 AM[39m [96m[tsx][39m [95mchange[39m in [92m./src/cli.ts[39m [33mRerunning...[39m
+cnode:internal/modules/cjs/loader:1423
+  throw err;
+  ^
+
+Error: Cannot find module '/Users/saintaugustine/ToknXR-CLI/toknxr-cli/node_modules/tsx/dist/preflight.cjs'
+Require stack:
+- internal/preload
+[90m    at Module._resolveFilename (node:internal/modules/cjs/loader:1420:15)[39m
+[90m    at defaultResolveImpl (node:internal/modules/cjs/loader:1058:19)[39m
+[90m    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1063:22)[39m
+[90m    at Module._load (node:internal/modules/cjs/loader:1226:37)[39m
+[90m    at TracingChannel.traceSync (node:diagnostics_channel:322:14)[39m
+[90m    at wrapModuleLoad (node:internal/modules/cjs/loader:244:24)[39m
+[90m    at Module.require (node:internal/modules/cjs/loader:1503:12)[39m
+[90m    at node:internal/modules/cjs/loader:2046:12[39m
+[90m    at loadPreloadModules (node:internal/process/pre_execution:686:5)[39m
+[90m    at setupUserModules (node:internal/process/pre_execution:205:5)[39m {
+  code: [32m'MODULE_NOT_FOUND'[39m,
+  requireStack: [ [32m'internal/preload'[39m ]
+}
+
+Node.js v24.8.0
+[90m12:27:48 AM[39m [96m[tsx][39m [95mchange[39m in [92m./src/cli.ts[39m [33mRerunning...[39m
+cnode:internal/modules/cjs/loader:1423
+  throw err;
+  ^
+
+Error: Cannot find module '/Users/saintaugustine/ToknXR-CLI/toknxr-cli/node_modules/tsx/dist/preflight.cjs'
+Require stack:
+- internal/preload
+[90m    at Module._resolveFilename (node:internal/modules/cjs/loader:1420:15)[39m
+[90m    at defaultResolveImpl (node:internal/modules/cjs/loader:1058:19)[39m
+[90m    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1063:22)[39m
+[90m    at Module._load (node:internal/modules/cjs/loader:1226:37)[39m
+[90m    at TracingChannel.traceSync (node:diagnostics_channel:322:14)[39m
+[90m    at wrapModuleLoad (node:internal/modules/cjs/loader:244:24)[39m
+[90m    at Module.require (node:internal/modules/cjs/loader:1503:12)[39m
+[90m    at node:internal/modules/cjs/loader:2046:12[39m
+[90m    at loadPreloadModules (node:internal/process/pre_execution:686:5)[39m
+[90m    at setupUserModules (node:internal/process/pre_execution:205:5)[39m {
+  code: [32m'MODULE_NOT_FOUND'[39m,
+  requireStack: [ [32m'internal/preload'[39m ]
+}
+
+Node.js v24.8.0
+[90m12:27:59 AM[39m [96m[tsx][39m [95mchange[39m in [92m./src/cli.ts[39m [33mRerunning...[39m
+cnode:internal/modules/cjs/loader:1423
+  throw err;
+  ^
+
+Error: Cannot find module '/Users/saintaugustine/ToknXR-CLI/toknxr-cli/node_modules/tsx/dist/preflight.cjs'
+Require stack:
+- internal/preload
+[90m    at Module._resolveFilename (node:internal/modules/cjs/loader:1420:15)[39m
+[90m    at defaultResolveImpl (node:internal/modules/cjs/loader:1058:19)[39m
+[90m    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1063:22)[39m
+[90m    at Module._load (node:internal/modules/cjs/loader:1226:37)[39m
+[90m    at TracingChannel.traceSync (node:diagnostics_channel:322:14)[39m
+[90m    at wrapModuleLoad (node:internal/modules/cjs/loader:244:24)[39m
+[90m    at Module.require (node:internal/modules/cjs/loader:1503:12)[39m
+[90m    at node:internal/modules/cjs/loader:2046:12[39m
+[90m    at loadPreloadModules (node:internal/process/pre_execution:686:5)[39m
+[90m    at setupUserModules (node:internal/process/pre_execution:205:5)[39m {
+  code: [32m'MODULE_NOT_FOUND'[39m,
+  requireStack: [ [32m'internal/preload'[39m ]
+}
+
+Node.js v24.8.0
