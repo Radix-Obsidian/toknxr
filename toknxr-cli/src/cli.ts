@@ -31,10 +31,10 @@ interface Interaction {
 
 
 // Gracefully handle broken pipe (e.g., piping output to `head`)
-process.stdout.on('error', (err: any) => {
+process.stdout.on('error', (err: NodeJS.ErrnoException | null) => {
   if (err && err.code === 'EPIPE') process.exit(0);
 });
-process.stderr.on('error', (err: any) => {
+process.stderr.on('error', (err: NodeJS.ErrnoException | null) => {
   if (err && err.code === 'EPIPE') process.exit(0);
 });
 
@@ -113,7 +113,7 @@ program
     const interactions: Interaction[] = lines.map(line => {
         try {
             return JSON.parse(line);
-        } catch (error) {
+        } catch {
             console.warn(`Skipping invalid log entry: ${line}`);
             return null;
         }
@@ -130,7 +130,18 @@ program
         avgEffectivenessScore: number;
         qualitySum: number;
         effectivenessSum: number;
-    }> = interactions.reduce((acc, interaction) => {
+    }> = interactions.reduce((acc: Record<string, {
+        totalTokens: number;
+        promptTokens: number;
+        completionTokens: number;
+        requestCount: number;
+        costUSD: number;
+        codingCount: number;
+        avgQualityScore: number;
+        avgEffectivenessScore: number;
+        qualitySum: number;
+        effectivenessSum: number;
+    }>, interaction) => {
       if (!acc[interaction.provider]) {
         acc[interaction.provider] = {
           totalTokens: 0, promptTokens: 0, completionTokens: 0, requestCount: 0, costUSD: 0,
@@ -153,7 +164,18 @@ program
         }
       }
       return acc;
-    }, {} as Record<string, any>);
+    }, {} as Record<string, {
+        totalTokens: number;
+        promptTokens: number;
+        completionTokens: number;
+        requestCount: number;
+        costUSD: number;
+        codingCount: number;
+        avgQualityScore: number;
+        avgEffectivenessScore: number;
+        qualitySum: number;
+        effectivenessSum: number;
+    }>);
 
     // Calculate averages
     for (const provider in stats) {
@@ -670,8 +692,8 @@ program
     try {
       aiAnalytics.exportAnalytics(options.output);
       console.log(chalk.green(`✅ Analytics exported to ${options.output}`));
-    } catch (error) {
-      console.error(chalk.red('❌ Export failed:'), error);
+    } catch {
+      console.error(chalk.red('❌ Export failed'));
     }
   });
 
