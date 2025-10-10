@@ -1,0 +1,71 @@
+{
+  "name": "@goldensheepai/toknxr-cli",
+  "version": "0.2.2",
+  "description": "CLI-powered AI effectiveness & code quality analysis tool - 100% Local",
+  "license": "MIT",
+  "type": "module",
+  "private": false,
+  "bin": {
+    "toknxr": "lib/cli.js"
+  },
+  "main": "lib/cli.js",
+  "files": [
+    "lib/**/*",
+    "package.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "keywords": [
+    "ai",
+    "cli",
+    "code-quality",
+    "analytics",
+    "token-tracking",
+    "developer-tools",
+    "local-first",
+    "proxy",
+    "gemini",
+    "openai",
+    "anthropic"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/cli.ts",
+    "lint": "echo 'Lint CLI code with root ESLint config'",
+    "typecheck": "tsc --noEmit",
+    "cli": "tsx src/cli.ts",
+    "start": "tsx src/cli.ts start",
+    "test": "tsx --test --test-reporter=verbose src/**/*.test.ts",
+    "test:watch": "tsx --test --watch src/**/*.test.ts"
+  },
+  "dependencies": {
+    "axios": "^1.12.2",
+    "boxen": "^7.1.1",
+    "chalk": "^5.6.2",
+    "cli-cursor": "^5.0.0",
+    "cli-progress": "^3.12.0",
+    "cli-spinners": "^3.3.0",
+    "cli-table3": "^0.6.4",
+    "commander": "^14.0.1",
+    "dotenv": "^16.4.5",
+    "inquirer": "^12.0.0",
+    "is-interactive": "^2.0.0",
+    "onetime": "^7.0.0",
+    "open": "^10.2.0",
+    "ora": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/chalk": "^2.2.4",
+    "@types/node": "^24.6.2",
+    "@types/open": "^6.2.1",
+    "@vitest/ui": "^3.2.4",
+    "esbuild": "^0.25.10",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

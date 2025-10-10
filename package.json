@@ -1,0 +1,64 @@
+{
+  "name": "@goldensheepai/toknxr-cli",
+  "version": "0.2.2",
+  "description": "CLI-powered AI effectiveness & code quality analysis tool - 100% Local",
+  "private": false,
+  "type": "module",
+  "bin": {
+    "toknxr": "./toknxr-cli/lib/cli.js"
+  },
+  "main": "./toknxr-cli/lib/cli.js",
+  "files": [
+    "toknxr-cli/lib/**/*",
+    "toknxr-cli/package.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "ai",
+    "cli",
+    "code-quality",
+    "analytics",
+    "token-tracking",
+    "developer-tools",
+    "local-first",
+    "proxy"
+  ],
+  "scripts": {
+    "build": "cd toknxr-cli && npm run build",
+    "dev": "cd toknxr-cli && npm run dev", 
+    "start": "cd toknxr-cli && npm run start",
+    "cli": "cd toknxr-cli && npm run cli",
+    "test": "cd toknxr-cli && npm run test",
+    "lint": "cd toknxr-cli && npm run lint",
+    "typecheck": "cd toknxr-cli && npm run typecheck",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md}\"",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run build",
+    "install-global": "npm run build && npm install -g ."
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20",
+    "typescript": "^5",
+    "prettier": "^3.6.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Radix-Obsidian/toknxr.git",
+    "directory": "."
+  },
+  "license": "MIT",
+  "author": "Golden Sheep AI",
+  "homepage": "https://github.com/Radix-Obsidian/toknxr#readme",
+  "bugs": {
+    "url": "https://github.com/Radix-Obsidian/toknxr/issues"
+  }
+}
