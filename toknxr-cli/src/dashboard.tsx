@@ -76,7 +76,7 @@ function createDashboard() {
         <div style="padding: 16px 0; border-bottom: ${i < interactions.length - 1 ? `1px solid ${COLORS.primary}10` : 'none'}; cursor: pointer; transition: background-color 0.2s;"
              onmouseover="this.style.background='${COLORS.primary}08'"
              onmouseout="this.style.background='transparent'"
-             onclick="showPromptDetails('${interaction.provider}', '${interaction.model}', \`${(interaction.userPrompt || 'N/A').replace(/'/g, "\\'")}\`, \`${(interaction.aiResponse || 'N/A').substring(0, 300).replace(/'/g, "\\'")}\`, ${interaction.qualityScore || 0}, ${interaction.effectivenessScore || 0}, '${interaction.taskType || 'unknown'}', ${interaction.cost || 0})">
+             onclick="showPromptDetails('${interaction.provider}', '${interaction.model}', \`${(interaction.userPrompt || 'N/A').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}\`, \`${(interaction.aiResponse || 'N/A').substring(0, 300).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}\`, ${interaction.qualityScore || 0}, ${interaction.effectivenessScore || 0}, '${interaction.taskType || 'unknown'}', ${interaction.cost || 0})">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
             <div style="flex: 1;">
               <div style="color: ${COLORS.text}; font-size: 14px; font-weight: 500; margin-bottom: 4px;">
