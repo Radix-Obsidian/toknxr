@@ -1,5 +1,5 @@
 {
-  "name": "@goldensheepai/toknxr-cli",
+  "name": "@radix-obsidian/toknxr-cli",
   "version": "0.2.2",
   "description": "CLI-powered AI effectiveness & code quality analysis tool - 100% Local",
   "private": false,
