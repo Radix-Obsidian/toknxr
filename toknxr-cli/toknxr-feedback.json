@@ -1,0 +1,59 @@
+{
+  "version": "1.0",
+  "feedback": [
+    {
+      "id": "fb_1760210639502_i82ptt76i",
+      "timestamp": "2025-10-11T19:23:59.502Z",
+      "type": "bug",
+      "severity": "high",
+      "context": "stats",
+      "title": "Token count displaying incorrect values",
+      "description": "The stats command shows tokens as 0 even when interactions exist in the log",
+      "userInfo": {
+        "version": "0.4.0",
+        "os": "darwin",
+        "nodeVersion": "v24.8.0",
+        "terminalSize": "120x80"
+      },
+      "status": "pending"
+    },
+    {
+      "id": "fb_1760210639512_watmu851f",
+      "timestamp": "2025-10-10T19:23:59.512Z",
+      "type": "feature",
+      "severity": "medium",
+      "context": "export",
+      "title": "Add CSV export functionality",
+      "description": "Would be great to export analytics data to CSV format for external analysis",
+      "userInfo": {
+        "version": "0.4.0",
+        "os": "darwin",
+        "nodeVersion": "v24.8.0",
+        "terminalSize": "120x80"
+      },
+      "status": "pending"
+    },
+    {
+      "id": "fb_1760210639512_0y2i2s9xn",
+      "timestamp": "2025-10-09T19:23:59.512Z",
+      "type": "improvement",
+      "severity": "low",
+      "context": "menu",
+      "title": "Improve menu navigation",
+      "description": "Add keyboard shortcuts for common menu items",
+      "userInfo": {
+        "version": "0.4.0",
+        "os": "darwin",
+        "nodeVersion": "v24.8.0",
+        "terminalSize": "120x80"
+      },
+      "status": "submitted"
+    }
+  ],
+  "stats": {
+    "totalSubmissions": 3,
+    "lastSubmission": "2025-10-09T19:23:59.512Z",
+    "mostCommonType": "bug",
+    "installation": "2025-10-11T19:22:34.187Z"
+  }
+}

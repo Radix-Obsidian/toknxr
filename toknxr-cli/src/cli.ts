@@ -119,7 +119,7 @@ function generateWeeklyCostTrends(interactions: Interaction[]): number[] {
   return dailyCosts;
 }
 
-program.name('toknxr').description('AI Effectiveness & Code Quality Analysis CLI').version('0.4.0');
+program.name('toknxr').description('AI Effectiveness & Code Quality Analysis CLI - Send feedback with: toknxr feedback').version('0.4.0');
 
 // Welcome command - enhanced entry point with full branding
 program
@@ -177,10 +177,16 @@ program
     console.log(COLORS.accent('📚 Need Help?'));
     console.log(`   ${COLORS.muted('•')} ${COLORS.highlight('toknxr menu')} ${COLORS.muted('- Interactive command center')}`);
     console.log(`   ${COLORS.muted('•')} ${COLORS.highlight('toknxr doctor')} ${COLORS.muted('- System diagnostics')}`);
+    console.log(`   ${COLORS.muted('•')} ${COLORS.highlight('toknxr feedback')} ${COLORS.muted('- Send feedback or report issues')}`);
     console.log(`   ${COLORS.muted('•')} ${COLORS.highlight('toknxr --help')} ${COLORS.muted('- View all commands')}`);
     console.log();
     
     console.log(createVersionInfo('0.4.0'));
+    console.log();
+    
+    // Add feedback footer
+    const { createFeedbackFooter } = await import('./ui.js');
+    console.log(createFeedbackFooter('welcome'));
     console.log();
     
     console.log(COLORS.accent('Ready to get started? Run:') + ' ' + COLORS.highlight('toknxr menu'));
@@ -377,6 +383,11 @@ program
           name: `${COLORS.secondary('💰 Budget Management')} ${COLORS.muted('- Configure spending limits and alerts')}`,
           value: 'budget',
           section: 'system'
+        },
+        {
+          name: `${COLORS.accent('💬 Send Feedback')} ${COLORS.muted('- Report bugs, suggest features, ask questions')}`,
+          value: 'feedback',
+          section: 'system'
         }
       ];
 
@@ -446,6 +457,10 @@ program
           case 'budget':
             console.clear();
             await program.parseAsync(['node', 'toknxr', 'budget', '--view']);
+            break;
+          case 'feedback':
+            console.clear();
+            await program.parseAsync(['node', 'toknxr', 'feedback']);
             break;
           case 'exit':
             console.log();
@@ -810,6 +825,12 @@ program
         recommended: true, // Always available
       },
       {
+        key: 'f',
+        title: chalk.cyan('💬 Send Feedback'),
+        description: 'Report issues or suggest improvements for stats view',
+        recommended: false,
+      },
+      {
         key: 'm',
         title: chalk.gray('📋 Main Menu'),
         description: 'Return to interactive menu system',
@@ -829,6 +850,10 @@ program
       name: `${option.recommended ? chalk.green('★') : ' '}${chalk.bold(option.key)}) ${option.title}\n    ${option.description}`,
       value: option.key,
     }));
+
+    // Add feedback footer
+    const { createFeedbackFooter } = await import('./ui.js');
+    console.log(createFeedbackFooter('stats'));
 
     const { choice } = await inquirer.prompt([
       {
@@ -930,6 +955,11 @@ program
           }
           break;
 
+        case 'f':
+          console.log(chalk.cyan('\n💬 Opening feedback center...'));
+          await feedbackManager.handleFeedbackShortcut('stats');
+          break;
+
         case 'm':
         case 'menu':
           console.log(chalk.gray('\n📋 Opening interactive menu...'));
@@ -976,6 +1006,7 @@ program
           console.log(`  ${chalk.yellow('toknxr menu')}     - Interactive command menu`);
           console.log(`  ${chalk.yellow('toknxr stats')}    - Current usage overview`);
           console.log(`  ${chalk.yellow('toknxr start')}    - Launch proxy server`);
+          console.log(`  ${chalk.yellow('toknxr feedback')} - Send feedback or report issues`);
           console.log(`  ${chalk.yellow('toknxr --help')}   - View all commands`);
     }
   });
@@ -1379,6 +1410,9 @@ import { auditLogger, AuditEventType, initializeAuditLogging } from './audit-log
 // Import enhanced hallucination detection commands
 import { hallucinationsDetailedCommand, codeQualityReportCommand } from './commands/hallucination-commands.js';
 import { createCodeHaluDetector, detectCodeHallucinations } from './enhanced-hallucination-detector.js';
+
+// Import feedback system
+import { feedbackManager } from './feedback.js';
 
 program
   .command('analyze')
@@ -2814,6 +2848,133 @@ program
     } catch (error) {
       console.log(chalk.red('❌ Failed to retrieve audit statistics'));
       console.log(chalk.gray(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`));
+    }
+  });
+
+// ---------------------------------------------------------------------------
+// Feedback System - User Experience Enhancement
+// ---------------------------------------------------------------------------
+
+program
+  .command('feedback')
+  .description('Provide feedback, report bugs, or suggest improvements')
+  .option('-q, --quick', 'Quick feedback (minimal form)')
+  .option('-d, --detailed', 'Detailed feedback form')
+  .option('-l, --list', 'List your previous feedback')
+  .option('--submit [id]', 'Submit pending feedback (optionally specify ID)')
+  .option('--stats', 'Show feedback statistics')
+  .action(async (options) => {
+    // Import branding for enhanced experience
+    const {
+      TOKNXR_COMPACT_LOGO,
+      COLORS,
+      createVersionInfo
+    } = await import('./branding.js');
+
+    // Determine the context (current command/screen)
+    const context = process.argv.slice(2).filter(arg => !arg.startsWith('-'))[0] || 'cli';
+
+    if (options.quick) {
+      await feedbackManager.quickFeedback(context);
+    } else if (options.detailed) {
+      await feedbackManager.detailedFeedback(context);
+    } else if (options.list) {
+      feedbackManager.listFeedback();
+    } else if (options.submit) {
+      if (typeof options.submit === 'string') {
+        // Submit specific feedback ID
+        const success = await feedbackManager.submitFeedback(options.submit);
+        if (!success) {
+          console.log(chalk.gray('Use --list to see available feedback IDs'));
+        }
+      } else {
+        // Submit all pending feedback
+        const data = feedbackManager['loadFeedbackData']();
+        const pending = data.feedback.filter((fb: any) => fb.status === 'pending');
+        
+        if (pending.length === 0) {
+          console.log(chalk.yellow('No pending feedback to submit'));
+          return;
+        }
+
+        console.log(chalk.blue(`\n📤 Submitting ${pending.length} pending feedback entries...`));
+        
+        let successCount = 0;
+        for (const fb of pending) {
+          const success = await feedbackManager.submitFeedback(fb.id);
+          if (success) successCount++;
+        }
+        
+        console.log(chalk.green(`\n✅ Successfully submitted ${successCount}/${pending.length} feedback entries`));
+      }
+    } else if (options.stats) {
+      const stats = feedbackManager.getFeedbackStats();
+      console.log(chalk.blue.bold('\n📊 Feedback Statistics'));
+      console.log(chalk.gray('━'.repeat(40)));
+      console.log(`Total feedback entries: ${stats.total}`);
+      console.log(`Pending submissions: ${chalk.yellow(stats.pending)}`);
+      console.log(`Successfully submitted: ${chalk.green(stats.submitted)}`);
+      
+      if (stats.pending > 0) {
+        console.log(chalk.gray('\nRun ') + chalk.cyan('toknxr feedback --submit') + chalk.gray(' to submit pending feedback'));
+      }
+    } else {
+      // Default interactive mode
+      console.clear();
+      console.log(TOKNXR_COMPACT_LOGO);
+      console.log(COLORS.accent('💬 TokNXR Feedback Center'));
+      console.log(COLORS.muted('Help us improve your AI development experience!'));
+      console.log();
+
+      const stats = feedbackManager.getFeedbackStats();
+      if (stats.total > 0) {
+        console.log(COLORS.primary(`📋 You've provided ${stats.total} feedback entries so far`));
+        if (stats.pending > 0) {
+          console.log(COLORS.warning(`   ${stats.pending} are pending submission`));
+        }
+        console.log();
+      }
+
+      console.log(COLORS.accent('🎯 How can we help you today?'));
+      console.log();
+
+      const { feedbackAction } = await inquirer.prompt([
+        {
+          type: 'list',
+          name: 'feedbackAction',
+          message: 'What would you like to do?',
+          choices: [
+            { name: '⚡ Quick Feedback (30 seconds)', value: 'quick' },
+            { name: '📋 Detailed Feedback Form', value: 'detailed' },
+            { name: '📜 View My Feedback History', value: 'list' },
+            { name: '📤 Submit Pending Feedback', value: 'submit' },
+            { name: '📊 View Feedback Statistics', value: 'stats' },
+            { name: '❌ Exit', value: 'exit' }
+          ]
+        }
+      ]);
+
+      switch (feedbackAction) {
+        case 'quick':
+          await feedbackManager.quickFeedback(context);
+          break;
+        case 'detailed':
+          await feedbackManager.detailedFeedback(context);
+          break;
+        case 'list':
+          feedbackManager.listFeedback();
+          break;
+        case 'submit':
+          await program.parseAsync(['node', 'toknxr', 'feedback', '--submit']);
+          break;
+        case 'stats':
+          await program.parseAsync(['node', 'toknxr', 'feedback', '--stats']);
+          break;
+        case 'exit':
+          console.log(chalk.gray('\n👋 Thanks for considering feedback!'));
+          console.log(createVersionInfo('0.4.0'));
+          break;
+      }
     }
   });
 

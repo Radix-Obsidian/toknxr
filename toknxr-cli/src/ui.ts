@@ -2,6 +2,9 @@ import chalk from 'chalk';
 import readline from 'readline';
 import inquirer from 'inquirer';
 
+// Import feedback manager for integration
+import { feedbackManager } from './feedback.js';
+
 export const createStatsOverview = (
   cost: number,
   requests: number,
@@ -257,3 +260,101 @@ export interface OraWithProgress {
   succeed: (message: string) => void;
   fail: (message: string) => void;
 }
+
+/**
+ * Add feedback footer to any screen
+ */
+export const createFeedbackFooter = (context: string = 'unknown'): string => {
+  const stats = feedbackManager.getFeedbackStats();
+  const pendingText = stats.pending > 0 ? chalk.yellow(` (${stats.pending} pending)`) : '';
+  
+  return chalk.gray(`\n💬 Got feedback? Type ${chalk.cyan('F')} or run: ${chalk.cyan('toknxr feedback')}${pendingText}`);
+};
+
+/**
+ * Enhanced interactive menu with feedback integration
+ */
+export const createInteractiveMenuWithFeedback = async (
+  options: { name: string; value: string; section?: string }[],
+  context: string = 'menu'
+): Promise<string> => {
+  // Add feedback option to the menu
+  const feedbackOption = {
+    name: `${chalk.cyan('💬 Send Feedback')} ${chalk.gray('- Report bugs, suggest features')}`,
+    value: 'feedback',
+    section: 'meta'
+  };
+  
+  const enhancedOptions = [...options, feedbackOption];
+  
+  console.log(createFeedbackFooter(context));
+  
+  const { choice } = await inquirer.prompt([
+    {
+      type: 'list',
+      name: 'choice',
+      message: 'Select an operation:',
+      choices: enhancedOptions.map(opt => ({
+        name: opt.name,
+        value: opt.value
+      }))
+    }
+  ]);
+  
+  // Handle feedback choice
+  if (choice === 'feedback') {
+    await feedbackManager.handleFeedbackShortcut(context);
+    // Return original menu
+    return await createInteractiveMenuWithFeedback(options, context);
+  }
+  
+  return choice;
+};
+
+/**
+ * Setup keyboard listener for F key feedback shortcut
+ */
+export const setupFeedbackShortcut = (context: string = 'unknown'): void => {
+  if (process.stdin.isTTY) {
+    process.stdin.setRawMode(true);
+    process.stdin.resume();
+    process.stdin.setEncoding('utf8');
+
+    const originalListener = process.stdin.listeners('data')[0];
+    
+    process.stdin.on('data', async (key: string) => {
+      // Handle F key for feedback
+      if (key.toLowerCase() === 'f') {
+        console.log(chalk.blue('\n🗣️  Feedback Mode Activated'));
+        await feedbackManager.handleFeedbackShortcut(context);
+        return;
+      }
+      
+      // Handle Ctrl+C
+      if (key === '\u0003') {
+        process.exit();
+      }
+      
+      // Pass through other keys to original handler
+      if (originalListener && typeof originalListener === 'function') {
+        originalListener(key);
+      }
+    });
+  }
+};
+
+/**
+ * Add contextual help with feedback option
+ */
+export const createContextualHelp = (commands: string[], context: string = 'unknown'): string => {
+  let help = chalk.blue.bold('\n🔍 Quick Actions:\n');
+  
+  commands.forEach(cmd => {
+    help += chalk.gray(`  • ${cmd}\n`);
+  });
+  
+  help += chalk.gray(`  • ${chalk.cyan('F')} - Send feedback about this screen\n`);
+  help += chalk.gray(`  • ${chalk.cyan('toknxr feedback')} - Open feedback center\n`);
+  
+  return help;
+};
