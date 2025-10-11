@@ -1,141 +1,237 @@
-# TokNXR CLI
+# TokNXR - AI Effectiveness & Code Quality Analysis
 
-[![License](https://img.shields.io/github/license/Radix-Obsidian/toknxr)](https://github.com/Radix-Obsidian/toknxr/blob/main/LICENSE)
+[![License](https://img.shields.io/github/license/goldensheepai/toknxr)](https://github.com/goldensheepai/toknxr/blob/main/LICENSE)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)](https://www.typescriptlang.org/)
 
-🚀 **CLI-Powered AI Analytics - No Cloud Required!**
+```
+     ╭─╮
+    ╱   ╲
+   ╱ ● ● ╲     Golden Sheep AI
+  ╱   ∩   ╲    Intelligent Development Tools
+ ╱  ╲___╱  ╲
+╱___________╲
+╲___________╱
+ │ │     │ │
+ ╰─╯     ╰─╯
 
-TokNXR is a local-first AI effectiveness & code quality analysis tool. Track AI token usage, measure code quality, detect hallucinations, and optimize your AI workflows - all from your terminal with zero cloud dependencies.
+████████╗ ██████╗ ██╗  ██╗███╗   ██╗██╗  ██╗██████╗ 
+╚══██╔══╝██╔═══██╗██║ ██╔╝████╗  ██║╚██╗██╔╝██╔══██╗
+   ██║   ██║   ██║█████╔╝ ██╔██╗ ██║ ╚███╔╝ ██████╔╝
+   ██║   ██║   ██║██╔═██╗ ██║╚██╗██║ ██╔██╗ ██╔══██╗
+   ██║   ╚██████╔╝██║  ██╗██║ ╚████║██╔╝ ██╗██║  ██║
+   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝╚═╝  ╚═╝
 
-## ✨ Why TokNXR CLI?
+           AI Effectiveness & Code Quality Analysis
+```
+
+🚀 **The Ultimate AI Development Analytics Platform**
+
+TokNXR is a comprehensive AI effectiveness & code quality analysis system that tracks AI token usage AND measures the actual effectiveness and quality of AI-generated code. It goes beyond simple cost tracking to help developers understand "what you got for what you paid" in terms of software development outcomes.
+
+## ✨ Why TokNXR?
 
 - **🎯 Beyond Cost Tracking**: Measure code quality and effectiveness, not just token costs
-- **🔧 Provider-Agnostic**: Works with OpenAI, Gemini, Anthropic, Ollama, and more
+- **🔧 Dual Interface**: Beautiful CLI + comprehensive web dashboard
 - **📊 Real-time Analysis**: Automatic code quality scoring and hallucination detection
-- **🏠 100% Local**: All data stored locally with zero cloud dependencies
-- **⚡ Instant Start**: Zero configuration - works out of the box
+- **🏠 100% Local-First**: All data stored locally with optional cloud sync
+- **⚡ One-Command Setup**: Works out of the box with zero configuration
 - **🔓 Open Source**: MIT licensed and community-driven
+- **🐑 Golden Sheep AI**: Professional branding and user experience
 
 ## 🚀 Quick Start
 
-### Global Installation
+### Option 1: Enhanced CLI Experience (Recommended)
 
 ```bash
+# Install globally
 npm install -g @goldensheepai/toknxr-cli
 
-# Set up your environment
-toknxr init
+# Launch the interactive menu
+toknxr
 
-# Add your API key to .env
-echo "GEMINI_API_KEY=your_key_here" >> .env
-
-# Start tracking
-toknxr start
-
-# View analytics  
-toknxr stats
+# Or use specific commands
+toknxr welcome    # Complete onboarding experience
+toknxr init       # Set up configuration
+toknxr start      # Launch AI tracking proxy
+toknxr stats      # View comprehensive analytics
 ```
 
-### Local Development
+### Option 2: Local Development Setup
 
 ```bash
-# Clone and install
-git clone https://github.com/Radix-Obsidian/toknxr.git
-cd toknxr
+# Clone and setup
+git clone https://github.com/goldensheepai/toknxr.git
+cd ToknXR-CLI
+
+# CLI setup
 cd toknxr-cli && npm install
+npm run cli       # Launch enhanced CLI
 
-# Start the CLI
-npm run start
+# Web dashboard setup
+cd .. && npm install
+npm run dev       # Start Next.js dashboard
+supabase start    # Start local Supabase
 ```
 
-### 🎭 A Day with TokNXR: Before and After
+## 🎭 Enhanced User Experience
 
-**Before TokNXR:**
+### Beautiful CLI Interface
 
-You're using AI to code, but you're flying blind.
-- **Is this AI-generated code any good?** You have to manually review everything.
-- **How much is this costing me?** You get a surprise bill at the end of the month.
-- **Is there a better AI model for this task?** You're just guessing.
+```bash
+$ toknxr
 
-**After TokNXR:**
+████████╗ ██████╗ ██╗  ██╗███╗   ██╗██╡  ██╗██████╗ 
+╚══██╔══╝██╔═══██╗██║ ██╔╝████╗  ██║╚██╗██╔╝██╔══██╗
+   ██║   ██║   ██║█████╔╝ ██╔██╗ ██║ ╚███╔╝ ██████╔╝
+   ██║   ██║   ██║██╔═██╗ ██║╚██╗██║ ██╔██╗ ██╔══██╗
+   ██║   ╚██████╔╝██║  ██╗██║ ╚████║██╔╝ ██╗██║  ██║
+   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝╚═╝  ╚═╝
 
-You run `toknxr start` once in the morning. You code as usual. At the end of the day, you run `toknxr stats`.
+           AI Effectiveness & Code Quality Analysis
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+👋 Message from Golden Sheep AI:
+Welcome to the most advanced AI development analytics platform!
+
+TokNXR helps you track token usage, analyze code quality, and detect hallucinations
+in your AI-generated code. Everything runs locally for maximum privacy and speed.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🌟 Welcome to the future of AI development analytics!
+
+🔧 System Status:
+  ✅ Proxy Server (8788)
+  ✅ Configuration (toknxr.config.json)
+  ✅ Analytics Data (interactions.log)
+
+📊 Quick Stats:
+  Total Spent: $1.31
+  AI Requests: 14
+  Avg Quality: 87/100
+
+🚀 Core Operations
+Essential tracking and monitoring features
+
+? Select an operation:
+❯ 🚀 Start AI Tracking - Launch proxy server for real-time monitoring
+  📊 View Analytics Dashboard - Comprehensive token usage & cost analysis
+  🔍 Code Quality Analysis - Deep dive into AI-generated code quality
+  🧠 Hallucination Detection - AI output validation and accuracy analysis
+  🔬 Enhanced CodeHalu Analysis - Advanced pattern-based hallucination detection
+  📈 Provider Comparison - Compare AI provider performance and costs
+  🔍 Browse Interactions - Explore your AI interaction history
+  (Use arrow keys to reveal more choices)
 ```
-📊 TokNXR Analytics Overview
-------------------------------------
-Total Cost: $2.75
-Total Requests: 82
-Estimated Waste: 15%
-Hallucination Rate: 5%
 
-🤖 Provider Performance
-----------------------------------------------------------------
-Provider      | Tokens   | Cost    | Quality | Effectiveness
-----------------------------------------------------------------
-Gemini-Pro    | 45,230   | $2.26   | 87/100  | 92/100
-OpenAI-GPT4   | 12,450   | $0.49   | 75/100  | 85/100
+### Professional Onboarding
 
-💡 Improvement Recommendations:
-- Your prompts for OpenAI-GPT4 are 15% less effective than for Gemini-Pro.
-- You could have saved $0.41 by using Gemini-Pro for all tasks.
+The `toknxr init` command now provides a guided setup experience:
+
+```bash
+$ toknxr init
+
+╔╦╗┌─┐┬┌─┌┐┌╦ ╦┬─┐
+ ║ │ │├┴┐│││╚╦╝├┬┘
+ ╩ └─┘┴ ┴┘└┘ ╩ ┴└─
+AI Code Quality Tracker
+
+🎯 TokNXR Initialization Wizard
+Setting up your AI analytics environment...
+
+✅ Created .env
+✅ Created toknxr.config.json
+✅ Created toknxr.policy.json
+
+╔══════════════════════════════════════════════════════════════════════════════════╗
+║ ✨ TokNXR Initialization Complete!                                              ║
+╠══════════════════════════════════════════════════════════════════════════════════╣
+║ Your AI analytics environment is ready to use                                   ║
+╚══════════════════════════════════════════════════════════════════════════════════╝
+
+🚀 Next Steps:
+   1. Add your API keys to .env file
+   2. Run toknxr start to launch the proxy server
+   3. Point your AI tools to http://localhost:8788
+   4. Use toknxr stats to view analytics
 ```
-
-**The Value:** In 5 minutes, you've gained complete visibility into your AI usage. You know exactly what you're spending, which AI models are performing best, and how to improve your prompts to save money and get better results.
 
 ## 🎯 Core Features
 
 ### 📊 **Real-time AI Analytics**
 - Token usage tracking across all providers
 - Cost analysis and budget monitoring
-- Quality scoring for AI-generated code
+- Quality scoring for AI-generated code (0-100)
 - Hallucination detection and business impact analysis
+- Weekly/monthly trend analysis
 
-### 🔧 **Provider Support**
-- OpenAI (GPT-3.5, GPT-4, etc.)
-- Google Gemini Pro
-- Anthropic Claude
-- Ollama (local models)
-- Easy to add new providers
+### 🔧 **Multi-Provider Support**
+- **OpenAI** (GPT-3.5, GPT-4, etc.)
+- **Google Gemini** (Pro, Free tier)
+- **Anthropic Claude** (All models)
+- **Ollama** (Local models)
+- **Easy extensibility** for new providers
 
-### 💻 **Developer Experience**
-- Interactive terminal UI with rich visualizations
-- Real-time proxy server for seamless integration
-- File-based analytics with powerful CLI tools
-- Comprehensive code quality metrics
+### 💻 **Enhanced Developer Experience**
+- **Beautiful CLI** with ASCII art branding and professional styling
+- **Interactive menus** with system status and quick stats
+- **Real-time proxy server** for seamless integration
+- **Professional error handling** with actionable recommendations
+- **Smart diagnostics** with categorized health checks
 
-## 📖 Commands
+### 🌐 **Web Dashboard**
+- Next.js 15 + React 19 interface
+- Supabase backend with real-time sync
+- Comprehensive analytics visualizations
+- Team collaboration features
+- Project and organization management
 
-### Essential Commands
+## 📖 Enhanced CLI Commands
+
+### Core Experience Commands
 ```bash
-toknxr start          # Launch proxy server
-toknxr stats          # View usage analytics
-toknxr init           # Initialize configuration
-toknxr menu           # Interactive command menu
-toknxr doctor         # Validate setup
+toknxr                # Interactive menu (default)
+toknxr welcome        # Complete onboarding experience
+toknxr logo           # Display branding
+toknxr menu           # Enhanced interactive menu
 ```
 
-### Analysis Commands
+### Essential Operations
+```bash
+toknxr init           # Professional setup wizard
+toknxr start          # Enhanced proxy server startup
+toknxr doctor         # Comprehensive system diagnostics
+toknxr stats          # Rich analytics dashboard
+```
+
+### Analysis & Quality
 ```bash
 toknxr code-analysis  # Detailed code quality insights
 toknxr hallucinations # AI hallucination statistics  
+toknxr providers      # Provider performance comparison
 toknxr analyze <prompt> <response>  # Analyze specific interaction
+```
+
+### Data Management
+```bash
+toknxr browse         # Interactive data explorer
+toknxr search --query "term"  # Search interactions
+toknxr export         # Export analytics data
 toknxr tail           # Follow live interactions
 ```
 
-### Management Commands
+### System Management
 ```bash
+toknxr budget --set 50  # Configure spending limits
+toknxr audit:init     # Enterprise audit logging
 toknxr policy:init    # Set up budget policies
-toknxr browse         # Interactive data explorer
-toknxr export         # Export analytics data
 ```
 
 ## ⚙️ Configuration
 
-TokNXR uses simple JSON configuration files:
-
-### `toknxr.config.json` (Provider Setup)
+### Provider Setup (`toknxr.config.json`)
 ```json
 {
   "providers": [
@@ -143,85 +239,6 @@ TokNXR uses simple JSON configuration files:
       "name": "gemini",
       "routePrefix": "/gemini/",
       "targetUrl": "https://generativelanguage.googleapis.com/",
-      "apiKeyEnvVar": "GEMINI_API_KEY",
-      "authHeader": "x-goog-api-key"
-    }
-  ]
-}
-```
-
-### `toknxr.policy.json` (Budget Policies)
-```json
-{
-  "version": "1",
-  "monthlyUSD": 50,
-  "perProviderMonthlyUSD": {
-    "Gemini-Pro": 30
-  },
-  "webhookUrl": ""
-}
-```
-
-## 🔄 How It Works
-
-1. **Start the Proxy**: `toknxr start` launches a local proxy server
-2. **Route AI Requests**: Point your apps to `http://localhost:8788/provider-name/`
-3. **Automatic Tracking**: All requests are logged with quality analysis
-4. **View Analytics**: Use `toknxr stats` to see insights and trends
-5. **Optimize**: Use quality metrics to improve prompts and reduce costs
-
-## 📈 Analytics Features
-
-- **Cost Tracking**: Per-provider spending with budget alerts
-- **Quality Scoring**: 0-100 scores for AI-generated code
-- **Effectiveness Analysis**: How well AI responses match your prompts
-- **Hallucination Detection**: Identify potential AI errors
-- **Trend Analysis**: Weekly/monthly usage patterns
-- **Interactive Browsing**: Paginated exploration of all interactions
-
-## 🛠️ Development
-
-```bash
-# Install dependencies
-cd toknxr-cli && npm install
-
-# Development mode
-npm run dev
-
-# Build for production
-npm run build
-
-# Run tests
-npm test
-```
-
-## 🤝 Contributing
-
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-## 📝 License
-
-MIT License - see [LICENSE](LICENSE) for details.
-
-## 🐑 About
-
-Built by [Golden Sheep AI](https://github.com/Radix-Obsidian) with ❤️ for the developer community.
-
----
-
-**Start tracking your AI effectiveness today with zero setup required!**
-
-**1. Configure Your Providers**
-
-Edit the `toknxr-cli/toknxr.config.json` file to add the providers you want to track.
-
-```json
-{
-  "providers": [
-    {
-      "name": "Gemini-Pro",
-      "routePrefix": "/gemini",
-      "targetUrl": "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent",
       "apiKeyEnvVar": "GEMINI_API_KEY",
       "authHeader": "x-goog-api-key",
       "tokenMapping": {
@@ -234,154 +251,175 @@ Edit the `toknxr-cli/toknxr.config.json` file to add the providers you want to t
 }
 ```
 
-**2. Start the Proxy Server**
-
-```bash
-# Set your API keys
-export GEMINI_API_KEY="your_api_key_here"
-
-# Start the proxy
-npm run start --prefix toknxr-cli
+### Budget Policies (`toknxr.policy.json`)
+```json
+{
+  "version": "1",
+  "monthlyUSD": 50,
+  "perProviderMonthlyUSD": {
+    "Gemini-Pro": 30,
+    "OpenAI-GPT4": 20
+  },
+  "webhookUrl": "https://your-webhook-url.com/alerts"
+}
 ```
 
-**3. Update Your Application**
-
-Point your AI requests to the local proxy (e.g., `http://localhost:8787/gemini/...`).
-
-**4. View Analytics**
-
+### Environment Variables (`.env`)
 ```bash
-# Basic stats
-npm run cli --prefix toknxr-cli -- stats
+# Required for most providers
+GEMINI_API_KEY=your_gemini_api_key_here
+OPENAI_API_KEY=your_openai_api_key_here
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
 
-# Detailed code analysis
-npm run cli --prefix toknxr-cli -- code-analysis
+# Optional: Supabase (for web dashboard)
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-## 📊 CLI Commands
+## 🔄 How It Works
 
-### Token Usage Analytics
+1. **Enhanced Setup**: Run `toknxr init` for guided configuration
+2. **Start Tracking**: `toknxr start` launches the enhanced proxy with professional startup sequence
+3. **Route AI Requests**: Point your apps to `http://localhost:8788/provider-name/`
+4. **Automatic Analysis**: All requests are logged with quality analysis and hallucination detection
+5. **Rich Analytics**: Use `toknxr stats` to see comprehensive insights and trends
+6. **Continuous Optimization**: Use quality metrics to improve prompts and reduce costs
 
-```bash
-# View comprehensive usage stats
-npm run cli --prefix toknxr-cli -- stats
+## 📈 Analytics Features
 
-# Example output:
-# 📊 Token Usage Summary (Last 30 days)
-# ├─ Gemini-Pro: 45,230 tokens ($2.26)
-# ├─ Ollama-Llama3: 12,450 tokens ($0.00)
-# └─ Total: 57,680 tokens ($2.26)
-```
+### CLI Analytics
+- **Cost Tracking**: Per-provider spending with budget alerts
+- **Quality Scoring**: 0-100 scores for AI-generated code with detailed breakdowns
+- **Effectiveness Analysis**: How well AI responses match your prompts
+- **Hallucination Detection**: Identify potential AI errors with business impact
+- **Trend Analysis**: Weekly/monthly usage patterns with visual charts
+- **Interactive Browsing**: Paginated exploration with search and filtering
 
-### Code Quality Analysis
-
-```bash
-# Deep code quality insights
-npm run cli --prefix toknxr-cli -- code-analysis
-
-# Example output:
-# 🎯 Code Quality Analysis
-# ├─ Average Quality Score: 87/100
-# ├─ Average Effectiveness: 92/100
-# ├─ Languages: JavaScript (60%), Python (40%)
-# └─ Recommendations: 3 suggestions available
-```
-
-## 🌐 Web Dashboard
-
-### Development Setup
-
-```bash
-# Install dependencies
-npm install
-
-# Set up environment variables
-cp .env.example .env.local
-# Edit .env.local with your Supabase credentials
-
-# Start development servers
-npm run dev          # Next.js app (http://localhost:3000)
-supabase start       # Supabase local development
-```
-
-### Deployment
-
-#### Option 1: Vercel (Recommended)
-
-```bash
-npm run deploy:vercel
-```
-
-#### Option 2: Supabase Hosting
-
-```bash
-supabase functions deploy
-```
+### Web Dashboard
+- **Real-time Sync**: Optional cloud sync for team visibility
+- **Advanced Visualizations**: Charts, graphs, and trend analysis
+- **Team Collaboration**: Shared analytics and insights
+- **Project Management**: Organize by projects and organizations
+- **Export Capabilities**: Multiple formats for external analysis
 
 ## 🏗️ Architecture
 
 ### System Overview
-
 ```
-[Developer] → [TokNxr CLI Proxy] → [AI Providers]
+[Developer] → [TokNXR CLI Proxy] → [AI Providers (OpenAI/Gemini/etc)]
      ↓              ↓
-[Web Dashboard] ← [Supabase Backend] ← [Local Analytics]
+[Enhanced CLI] ← [Local Analytics] ← [Real-time Analysis]
      ↓              ↓
-[PostgreSQL] ← [Supabase Auth & RLS]
+[Web Dashboard] ← [Supabase Backend] ← [Optional Cloud Sync]
+     ↓              
+[Supabase (PostgreSQL)]
 ```
 
 ### Technology Stack
-
+- **CLI**: TypeScript, Commander.js, Inquirer, Chalk
 - **Frontend**: Next.js 15, React 19, Tailwind CSS 4
 - **Backend**: Supabase Edge Functions, Node.js 22
 - **Database**: Supabase PostgreSQL with Row Level Security
-- **CLI**: TypeScript, Commander.js, Axios
-- **Authentication**: Supabase Auth
+- **Analytics**: Custom analysis engine with hallucination detection
 
 ## 📁 Project Structure
 
 ```
-toknxr/
+ToknXR-CLI/
 ├── src/                           # Next.js web application
+│   ├── app/                       # App Router pages
+│   ├── components/                # React components
+│   └── lib/                       # Utilities and configurations
 ├── toknxr-cli/                    # Standalone CLI tool
+│   ├── src/                       # CLI source code
+│   │   ├── cli.ts                 # Enhanced main CLI interface
+│   │   ├── branding.ts            # Professional branding elements
+│   │   ├── proxy.ts               # AI request proxy server
+│   │   └── code-analysis.ts       # Code quality analysis
+│   └── package.json               # CLI dependencies
 ├── supabase/                      # Supabase configuration
+│   ├── functions/                 # Edge functions
+│   └── migrations/                # Database migrations
 └── public/                        # Static assets
 ```
 
+## 🛠️ Development
+
+### CLI Development
+```bash
+cd toknxr-cli
+npm install
+npm run dev        # Development mode with watch
+npm run build      # Build for production
+npm run test       # Run tests
+```
+
+### Web Dashboard Development
+```bash
+npm install
+npm run dev        # Next.js dev server
+supabase start     # Local Supabase
+npm run build      # Production build
+```
+
+## 📊 What's Tracked
+
+For every AI request, TokNXR captures and analyzes:
+
+- **Token Usage**: Prompt, completion, and total tokens with cost calculation
+- **Provider Info**: Which AI model and provider was used
+- **Code Quality**: Syntax validation, readability, structure analysis (0-100 score)
+- **Effectiveness**: How well the AI understood your request (0-100 score)
+- **Hallucinations**: Detection of potential AI fabrications with confidence levels
+- **Business Impact**: Time waste estimates and quality degradation metrics
+- **Performance**: Response times and error rates
+- **Trends**: Usage patterns and cost optimization opportunities
+
 ## 🤝 Contributing
 
-We welcome contributions! TokNxr is open source and community-driven.
-
-### How to Contribute
-
-1.  **Fork the repository**
-2.  **Create a feature branch**: `git checkout -b feature/amazing-feature`
-3.  **Commit your changes**: `git commit -m 'Add amazing feature'`
-4.  **Push to the branch**: `git push origin feature/amazing-feature`
-5.  **Open a Pull Request**
+We welcome contributions! TokNXR is open source and community-driven.
 
 ### Areas for Contribution
-
 - **New AI Providers**: Add support for more AI services
-- **Language Support**: Extend code analysis to more programming languages
-- **Dashboard Features**: Enhance the web interface
-- **Documentation**: Improve guides and examples
+- **Enhanced Analytics**: Advanced visualizations and insights
+- **CLI Improvements**: Better user experience and features
+- **Dashboard Features**: Enhanced web interface capabilities
+- **Documentation**: Improved guides and examples
 
-## 🔒 Security
+### How to Contribute
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Commit your changes: `git commit -m 'Add amazing feature'`
+4. Push to the branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request
+
+## 🔒 Security & Privacy
 
 - **Local-First**: All sensitive data stays on your machine by default
 - **Optional Cloud Sync**: Choose what data to sync to Supabase
-- **API Key Protection**: Environment variables and secure storage
+- **API Key Protection**: Secure environment variable storage
 - **Open Source**: Full transparency in code and security practices
+- **Audit Logging**: Enterprise-grade audit trail for compliance
 
 ## 📈 Roadmap
 
 - [ ] **Enhanced Language Support**: Go, Rust, Java, C++
 - [ ] **Advanced Analytics**: ML-powered insights and recommendations
-- [ ] **Team Collaboration**: Shared analytics and team dashboards
+- [ ] **Team Collaboration**: Enhanced shared analytics and team dashboards
 - [ ] **Plugin System**: Extensible architecture for custom analyzers
 - [ ] **CI/CD Integration**: GitHub Actions and GitLab CI support
+- [ ] **Enterprise Features**: SSO, advanced audit logging, custom deployments
+
+## 🐑 About Golden Sheep AI
+
+Built by [Golden Sheep AI](https://github.com/goldensheepai) with ❤️ for the developer community. We believe in creating intelligent development tools that enhance productivity while maintaining privacy and transparency.
 
 ## 📄 License
 
-Private - All rights reserved
+MIT License - see [LICENSE](LICENSE) for details.
+
+---
+
+**Start tracking your AI effectiveness today with zero setup required!**
+
+Try the enhanced CLI experience: `npm install -g @goldensheepai/toknxr-cli && toknxr`

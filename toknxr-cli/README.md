@@ -1,6 +1,43 @@
-# TokNXR - AI Usage Analytics & Cost Tracking
+# TokNXR CLI - AI Usage Analytics & Code Quality Analysis
 
-🚀 **One Command Setup** - Track AI usage across all major providers with comprehensive analytics, cost monitoring, and code quality analysis.
+🚀 **Enhanced CLI Experience** - Beautiful, branded interface with comprehensive AI analytics, cost monitoring, and code quality analysis.
+
+## 🎨 Enhanced CLI Interface
+
+TokNXR now features a completely redesigned CLI experience with:
+
+### ✨ **Golden Sheep AI Branding**
+- Beautiful ASCII art logos and welcome messages
+- Professional visual identity throughout the interface
+- Contextual greetings and time-of-day messages
+- Consistent color schemes and styling
+
+### 🖥️ **Interactive Menu System**
+```bash
+# Launch the enhanced interactive menu
+toknxr menu
+
+# Or simply run without commands for automatic menu
+toknxr
+```
+
+### 🎯 **Smart Welcome Experience**
+```bash
+# See the full branding and onboarding experience
+toknxr welcome
+
+# Display just the logos and branding
+toknxr logo
+```
+
+### 🏥 **Enhanced System Diagnostics**
+```bash
+# Professional diagnostic interface with categorized results
+toknxr doctor
+
+# Visual status indicators and smart recommendations
+toknxr init
+```
 
 ## 🔥 Quick Start (ONE COMMAND!)
 
@@ -378,6 +415,22 @@ result = response.json()
 ```
 
 ## 📊 Analytics & Monitoring
+
+### Enhanced CLI Commands
+
+```bash
+# Interactive menu with branding and system status
+toknxr menu               # Full interactive experience
+toknxr                    # Same as menu (default command)
+
+# Welcome and branding
+toknxr welcome            # Complete onboarding experience
+toknxr logo               # Display TokNXR and Golden Sheep AI logos
+
+# System management
+toknxr init               # Enhanced setup wizard
+toknxr doctor             # Professional diagnostic interface
+```
 
 ### View Usage Statistics
 

@@ -70,32 +70,7 @@ function applyRainbow(text: string): string {
   return text.split('').map((char, i) => colors[i % colors.length](char)).join('');
 }
 
-// ASCII Art Welcome Screen with gradient colors
-const welcomeMessage = `
-${chalk.bold.cyan('TokNXR CLI - AI Effectiveness & Code Quality Analysis')}
 
-${chalk.bold.underline('Getting Started Guide:')}
-
-${chalk.bold.white('Chapter 1: Core Functionality')}
-  ${chalk.white('1.1 Launching the Proxy Server:')}
-     ${chalk.yellow('toknxr start')} ${chalk.gray('- Begin tracking your AI interactions.')}
-  ${chalk.white('1.2 Viewing Analytics:')}
-     ${chalk.yellow('toknxr stats')} ${chalk.gray('- Get an overview of token usage and code quality.')}
-  ${chalk.white('1.3 Deep Code Analysis:')}
-     ${chalk.yellow('toknxr code-analysis')} ${chalk.gray('- Dive into detailed quality insights for your AI-generated code.')}
-
-${chalk.bold.white('Chapter 2: Advanced Usage')}
-  ${chalk.white('2.1 Interactive Command Menu:')}
-     ${chalk.yellow('toknxr menu')} ${chalk.gray('- Navigate through commands with a guided interface.')}
-  ${chalk.white('2.2 Configuring Spending Policies:')}
-     ${chalk.yellow('toknxr policy:init')} ${chalk.gray('- Set up and manage your AI spending limits.')}
-
-${chalk.bold.white('Chapter 3: Need Assistance?')}
-  ${chalk.white('3.1 Accessing Help:')}
-     ${chalk.yellow('toknxr --help')} ${chalk.gray('- View all available commands and their options.')}
-
-${chalk.gray('------------------------------------------------------------')}
-`;
 
 
 
@@ -146,54 +121,338 @@ function generateWeeklyCostTrends(interactions: Interaction[]): number[] {
 
 program.name('toknxr').description('AI Effectiveness & Code Quality Analysis CLI').version('0.4.0');
 
+// Welcome command - enhanced entry point with full branding
+program
+  .command('welcome')
+  .description('Welcome to TokNXR - your AI development companion')
+  .action(async () => {
+    const {
+      GOLDEN_SHEEP_LOGO,
+      TOKNXR_LOGO,
+      WELCOME_MESSAGE,
+      createSystemStatus,
+      createQuickStats,
+      getRandomTip,
+      getContextualDecoration,
+      createVersionInfo,
+      COLORS
+    } = await import('./branding.js');
+
+    console.clear();
+    
+    // Display both logos with animation effect
+    console.log(GOLDEN_SHEEP_LOGO);
+    console.log();
+    console.log(TOKNXR_LOGO);
+    console.log(WELCOME_MESSAGE());
+    
+    console.log(COLORS.accent('🌟 Welcome to the future of AI development analytics!'));
+    console.log();
+    console.log(COLORS.primary('TokNXR is your comprehensive AI effectiveness & code quality analysis platform.'));
+    console.log(COLORS.muted('Track token usage, analyze code quality, detect hallucinations, and optimize your AI workflow.'));
+    console.log();
+    
+    console.log(COLORS.accent('🚀 Quick Start Guide:'));
+    console.log(`   ${COLORS.muted('1.')} ${COLORS.primary('Run')} ${COLORS.highlight('toknxr init')} ${COLORS.muted('to set up configuration')}`);
+    console.log(`   ${COLORS.muted('2.')} ${COLORS.primary('Add your API keys to the .env file')}`);
+    console.log(`   ${COLORS.muted('3.')} ${COLORS.primary('Start tracking with')} ${COLORS.highlight('toknxr start')}`);
+    console.log(`   ${COLORS.muted('4.')} ${COLORS.primary('View analytics with')} ${COLORS.highlight('toknxr stats')}`);
+    console.log();
+    
+    console.log(COLORS.accent('🎯 Key Features:'));
+    console.log(`   ${COLORS.success('🔍')} ${COLORS.primary('Real-time AI interaction tracking')}`);
+    console.log(`   ${COLORS.success('📊')} ${COLORS.primary('Comprehensive cost and usage analytics')}`);
+    console.log(`   ${COLORS.success('🧠')} ${COLORS.primary('Advanced hallucination detection')}`);
+    console.log(`   ${COLORS.success('⭐')} ${COLORS.primary('Code quality analysis and scoring')}`);
+    console.log(`   ${COLORS.success('🛡️')} ${COLORS.primary('100% local-first privacy approach')}`);
+    console.log(`   ${COLORS.success('🔧')} ${COLORS.primary('Multi-provider support (OpenAI, Gemini, Anthropic)')}`);
+    console.log();
+    
+    console.log(COLORS.accent('💡 Pro Tip: ') + COLORS.muted(getRandomTip()));
+    console.log();
+    
+    console.log(COLORS.muted(getContextualDecoration()));
+    console.log();
+    
+    console.log(COLORS.accent('📚 Need Help?'));
+    console.log(`   ${COLORS.muted('•')} ${COLORS.highlight('toknxr menu')} ${COLORS.muted('- Interactive command center')}`);
+    console.log(`   ${COLORS.muted('•')} ${COLORS.highlight('toknxr doctor')} ${COLORS.muted('- System diagnostics')}`);
+    console.log(`   ${COLORS.muted('•')} ${COLORS.highlight('toknxr --help')} ${COLORS.muted('- View all commands')}`);
+    console.log();
+    
+    console.log(createVersionInfo('0.4.0'));
+    console.log();
+    
+    console.log(COLORS.accent('Ready to get started? Run:') + ' ' + COLORS.highlight('toknxr menu'));
+  });
+
+program
+  .command('logo')
+  .description('Display TokNXR and Golden Sheep AI branding')
+  .action(async () => {
+    const {
+      GOLDEN_SHEEP_LOGO,
+      TOKNXR_LOGO,
+      createVersionInfo,
+      COLORS
+    } = await import('./branding.js');
+
+    console.clear();
+    console.log(GOLDEN_SHEEP_LOGO);
+    console.log();
+    console.log(TOKNXR_LOGO);
+    console.log();
+    console.log(COLORS.accent('AI Effectiveness & Code Quality Analysis'));
+    console.log(COLORS.muted('Your local-first AI development analytics platform'));
+    console.log();
+    console.log(createVersionInfo('0.4.0'));
+  });
+
 program
   .command('menu')
   .description('Interactive menu system for TokNXR operations')
   .action(async () => {
     try {
-      const choice = await createInteractiveMenu([
+      // Import branding components
+      const {
+        TOKNXR_LOGO,
+        TOKNXR_COMPACT_LOGO,
+        WELCOME_MESSAGE,
+        createSystemStatus,
+        createQuickStats,
+        getRandomTip,
+        getContextualDecoration,
+        createVersionInfo,
+        MENU_SECTIONS,
+        COLORS
+      } = await import('./branding.js');
+
+      // Clear screen for clean presentation
+      console.clear();
+
+      // Detect terminal width to choose appropriate logo
+      const terminalWidth = process.stdout.columns || 80;
+      const logo = terminalWidth >= 100 ? TOKNXR_LOGO : TOKNXR_COMPACT_LOGO;
+
+      console.log(logo);
+      console.log(WELCOME_MESSAGE());
+
+      // Display contextual decoration
+      console.log(COLORS.muted(getContextualDecoration()));
+      console.log();
+
+      // Check system status
+      const configExists = fs.existsSync(path.resolve(process.cwd(), 'toknxr.config.json'));
+      const logExists = fs.existsSync(path.resolve(process.cwd(), 'interactions.log'));
+      
+      // Check if proxy is running
+      let proxyRunning = false;
+      try {
+        await fetch('http://localhost:8788/health', { signal: AbortSignal.timeout(1000) });
+        proxyRunning = true;
+      } catch {
+        proxyRunning = false;
+      }
+
+      // Get quick stats if data exists
+      let totalCost = 0;
+      let totalRequests = 0;
+      let avgQuality = 0;
+
+      if (logExists) {
+        try {
+          const fileContent = fs.readFileSync(path.resolve(process.cwd(), 'interactions.log'), 'utf8');
+          const lines = fileContent.trim().split('\n');
+          const interactions = lines
+            .map(line => {
+              try {
+                return JSON.parse(line);
+              } catch {
+                return null;
+              }
+            })
+            .filter(interaction => interaction !== null);
+
+          totalCost = interactions.reduce((sum, i) => sum + (i.costUSD || 0), 0);
+          totalRequests = interactions.length;
+          
+          const qualityScores = interactions
+            .map(i => i.codeQualityScore)
+            .filter(score => score !== undefined);
+          avgQuality = qualityScores.length > 0 
+            ? Math.round(qualityScores.reduce((sum, score) => sum + score, 0) / qualityScores.length)
+            : 0;
+        } catch {
+          // Ignore errors in stats calculation
+        }
+      }
+
+      // Display system status and stats
+      console.log(createSystemStatus(proxyRunning, configExists, logExists));
+      console.log();
+      
+      if (logExists && totalRequests > 0) {
+        console.log(createQuickStats(totalCost, totalRequests, avgQuality));
+        console.log();
+      }
+
+      // Enhanced menu with organized sections
+      console.log(MENU_SECTIONS.CORE_OPERATIONS.title);
+      console.log(MENU_SECTIONS.CORE_OPERATIONS.description);
+      console.log();
+
+      const coreOptions = [
         {
-          name: chalk.cyan('🚀 Start Tracking') + chalk.gray(' - Launch proxy server'),
+          name: `${COLORS.success('🚀 Start AI Tracking')} ${COLORS.muted('- Launch proxy server for real-time monitoring')}`,
           value: 'start',
+          section: 'core'
         },
         {
-          name: chalk.blue('📊 View Statistics') + chalk.gray(' - Token usage & costs'),
+          name: `${COLORS.primary('📊 View Analytics Dashboard')} ${COLORS.muted('- Comprehensive token usage & cost analysis')}`,
           value: 'stats',
-        },
+          section: 'core'
+        }
+      ];
+
+      console.log(MENU_SECTIONS.QUALITY_CONTROL.title);
+      console.log(MENU_SECTIONS.QUALITY_CONTROL.description);
+      console.log();
+
+      const qualityOptions = [
         {
-          name: chalk.magenta('🔍 Code Analysis') + chalk.gray(' - Quality insights'),
+          name: `${COLORS.highlight('🔍 Code Quality Analysis')} ${COLORS.muted('- Deep dive into AI-generated code quality')}`,
           value: 'analysis',
+          section: 'quality'
         },
         {
-          name: chalk.yellow('🧠 AI Analysis') + chalk.gray(' - Hallucination detection'),
+          name: `${COLORS.warning('🧠 Hallucination Detection')} ${COLORS.muted('- AI output validation and accuracy analysis')}`,
           value: 'hallucinations',
+          section: 'quality'
         },
         {
-          name: chalk.cyan('🔬 Enhanced Detection') + chalk.gray(' - CodeHalu analysis'),
+          name: `${COLORS.secondary('🔬 Enhanced CodeHalu Analysis')} ${COLORS.muted('- Advanced pattern-based hallucination detection')}`,
           value: 'enhanced_detection',
+          section: 'quality'
+        }
+      ];
+
+      console.log(MENU_SECTIONS.ANALYTICS.title);
+      console.log(MENU_SECTIONS.ANALYTICS.description);
+      console.log();
+
+      const analyticsOptions = [
+        {
+          name: `${COLORS.primary('📈 Provider Comparison')} ${COLORS.muted('- Compare AI provider performance and costs')}`,
+          value: 'providers',
+          section: 'analytics'
         },
-        { name: chalk.red('⚙️ Initialize') + chalk.gray(' - Set up configuration'), value: 'init' },
-      ]);
+        {
+          name: `${COLORS.secondary('🔍 Browse Interactions')} ${COLORS.muted('- Explore your AI interaction history')}`,
+          value: 'browse',
+          section: 'analytics'
+        },
+        {
+          name: `${COLORS.highlight('📋 Export Analytics')} ${COLORS.muted('- Export data for external analysis')}`,
+          value: 'export',
+          section: 'analytics'
+        }
+      ];
+
+      console.log(MENU_SECTIONS.SYSTEM_MANAGEMENT.title);
+      console.log(MENU_SECTIONS.SYSTEM_MANAGEMENT.description);
+      console.log();
+
+      const systemOptions = [
+        {
+          name: `${COLORS.warning('⚙️ Initialize Configuration')} ${COLORS.muted('- Set up TokNXR for first-time use')}`,
+          value: 'init',
+          section: 'system'
+        },
+        {
+          name: `${COLORS.success('🏥 System Doctor')} ${COLORS.muted('- Diagnose and fix common issues')}`,
+          value: 'doctor',
+          section: 'system'
+        },
+        {
+          name: `${COLORS.secondary('💰 Budget Management')} ${COLORS.muted('- Configure spending limits and alerts')}`,
+          value: 'budget',
+          section: 'system'
+        }
+      ];
+
+      // Combine all options
+      const allOptions = [...coreOptions, ...qualityOptions, ...analyticsOptions, ...systemOptions];
+
+      // Add separator and exit option
+      allOptions.push({
+        name: chalk.gray('─'.repeat(50)),
+        value: 'separator',
+        section: 'other'
+      });
+      allOptions.push({
+        name: `${COLORS.muted('❌ Exit')} ${COLORS.muted('- Close TokNXR CLI')}`,
+        value: 'exit',
+        section: 'other'
+      });
+
+      // Display random tip
+      console.log(COLORS.accent('💡 Pro Tip: ') + COLORS.muted(getRandomTip()));
+      console.log();
+
+      const choice = await createInteractiveMenu(allOptions.filter(opt => opt.value !== 'separator'));
 
       try {
         switch (choice) {
           case 'start':
+            console.clear();
             await program.parseAsync(['node', 'toknxr', 'start']);
             break;
           case 'stats':
+            console.clear();
             await program.parseAsync(['node', 'toknxr', 'stats']);
             break;
           case 'analysis':
+            console.clear();
             await program.parseAsync(['node', 'toknxr', 'code-analysis']);
             break;
           case 'hallucinations':
+            console.clear();
             await program.parseAsync(['node', 'toknxr', 'hallucinations']);
             break;
           case 'enhanced_detection':
+            console.clear();
             await program.parseAsync(['node', 'toknxr', 'hallucinations-detailed']);
             break;
+          case 'providers':
+            console.clear();
+            await program.parseAsync(['node', 'toknxr', 'providers']);
+            break;
+          case 'browse':
+            console.clear();
+            await program.parseAsync(['node', 'toknxr', 'browse']);
+            break;
+          case 'export':
+            console.clear();
+            await program.parseAsync(['node', 'toknxr', 'export']);
+            break;
           case 'init':
+            console.clear();
             await program.parseAsync(['node', 'toknxr', 'init']);
+            break;
+          case 'doctor':
+            console.clear();
+            await program.parseAsync(['node', 'toknxr', 'doctor']);
+            break;
+          case 'budget':
+            console.clear();
+            await program.parseAsync(['node', 'toknxr', 'budget', '--view']);
+            break;
+          case 'exit':
+            console.log();
+            console.log(COLORS.muted('👋 Thanks for using TokNXR!'));
+            console.log(createVersionInfo('0.4.0'));
+            console.log();
+            process.exit(0);
             break;
         }
       } catch (e) {
@@ -208,16 +467,30 @@ program
   .command('start')
   .description('Start the TokNxr proxy server to monitor AI interactions.')
   .action(async () => {
+    // Import branding for enhanced startup experience
+    const {
+      TOKNXR_COMPACT_LOGO,
+      createSuccessBox,
+      createErrorBox,
+      COLORS,
+      getContextualDecoration
+    } = await import('./branding.js');
+
+    console.clear();
+    console.log(TOKNXR_COMPACT_LOGO);
+    console.log(COLORS.muted(getContextualDecoration()));
+    console.log();
+
     const steps = [
-      'Checking system compatibility',
-      'Loading configuration & policies',
-      'Initializing AI provider connections',
-      'Setting up proxy routing & analytics',
-      'Starting background monitoring',
-      'TokNXR proxy is live!',
+      '🔍 Checking system compatibility',
+      '⚙️ Loading configuration & policies', 
+      '🤖 Initializing AI provider connections',
+      '🛣️ Setting up proxy routing & analytics',
+      '📡 Starting background monitoring',
+      '✨ TokNXR proxy is live!'
     ];
 
-    const spinner = createOperationProgress('TokNXR Proxy Server', steps);
+    const spinner = createOperationProgress(COLORS.accent('🚀 Starting TokNXR Proxy Server'), steps);
 
     try {
       // Enhanced startup sequence with realistic timings
@@ -228,19 +501,41 @@ program
       setTimeout(() => spinner.updateProgress(4), 2000); // Background monitoring (final prep)
       setTimeout(() => {
         spinner.updateProgress(5);
-        spinner.succeed(chalk.green(`✨ TokNXR proxy server is ready!`));
-        console.log(chalk.cyan(`🔗 Listening at: ${chalk.bold('http://localhost:8788')}`));
-        console.log(chalk.gray(`🎯 Start making AI requests to see real-time analytics!`));
-        console.log(chalk.gray(`💡 Use ${chalk.cyan('toknxr stats')} to view usage insights`));
+        console.log();
+        console.log(createSuccessBox(
+          'TokNXR Proxy Server Started!',
+          'Your AI tracking system is now live and monitoring all interactions'
+        ));
+        console.log();
+        console.log(COLORS.accent('🔗 Connection Details:'));
+        console.log(`   ${COLORS.primary('Proxy URL:')} ${COLORS.success('http://localhost:8788')}`);
+        console.log(`   ${COLORS.primary('Dashboard:')} ${COLORS.success('http://localhost:8788/dashboard')}`);
+        console.log(`   ${COLORS.primary('Health Check:')} ${COLORS.success('http://localhost:8788/health')}`);
+        console.log();
+        console.log(COLORS.accent('🎯 Next Steps:'));
+        console.log(`   ${COLORS.muted('•')} ${COLORS.primary('Point your AI tools to the proxy URL above')}`);
+        console.log(`   ${COLORS.muted('•')} ${COLORS.primary('Use')} ${COLORS.highlight('toknxr stats')} ${COLORS.primary('to view real-time analytics')}`);
+        console.log(`   ${COLORS.muted('•')} ${COLORS.primary('Monitor quality with')} ${COLORS.highlight('toknxr code-analysis')}`);
+        console.log();
+        console.log(COLORS.muted('Press Ctrl+C to stop the proxy server'));
+        
         // Start the actual server
         startProxyServer();
       }, 2200);
     } catch (error) {
-      spinner.fail(chalk.red('Failed to start proxy server'));
-      console.log(chalk.yellow(`\n💡 Troubleshooting tips:`));
-      console.log(`  • Check if port 8788 is available`);
-      console.log(`  • Verify GEMINI_API_KEY is set`);
-      console.log(`  • Run ${chalk.cyan('toknxr init')} to set up config`);
+      spinner.fail(COLORS.error('Failed to start proxy server'));
+      console.log();
+      console.log(createErrorBox(
+        'Startup Failed',
+        'The TokNXR proxy server could not be started',
+        'Check the troubleshooting tips below'
+      ));
+      console.log();
+      console.log(COLORS.accent('🛠️ Troubleshooting:'));
+      console.log(`   ${COLORS.muted('•')} Check if port 8788 is available`);
+      console.log(`   ${COLORS.muted('•')} Verify GEMINI_API_KEY is set in your environment`);
+      console.log(`   ${COLORS.muted('•')} Run ${COLORS.highlight('toknxr init')} to set up configuration`);
+      console.log(`   ${COLORS.muted('•')} Try ${COLORS.highlight('toknxr doctor')} to diagnose issues`);
       throw error;
     }
   });
@@ -688,16 +983,34 @@ program
 program
   .command('init')
   .description('Scaffold .env and toknxr.config.json in the current directory')
-  .action(() => {
+  .action(async () => {
+    // Import branding for enhanced init experience
+    const {
+      TOKNXR_COMPACT_LOGO,
+      createSuccessBox,
+      createErrorBox,
+      COLORS,
+      WELCOME_MESSAGE
+    } = await import('./branding.js');
+
+    console.clear();
+    console.log(TOKNXR_COMPACT_LOGO);
+    console.log(COLORS.accent('🎯 TokNXR Initialization Wizard'));
+    console.log(COLORS.muted('Setting up your AI analytics environment...'));
+    console.log();
+
     const envPath = path.resolve(process.cwd(), '.env');
+    let envCreated = false;
     if (!fs.existsSync(envPath)) {
       fs.writeFileSync(envPath, 'GEMINI_API_KEY=\n');
-      console.log(chalk.green(`Created ${envPath}`));
+      console.log(COLORS.success(`✅ Created ${envPath}`));
+      envCreated = true;
     } else {
-      console.log(chalk.yellow(`Skipped ${envPath} (exists)`));
+      console.log(COLORS.warning(`⚠️  Skipped ${envPath} (already exists)`));
     }
 
     const configPath = path.resolve(process.cwd(), 'toknxr.config.json');
+    let configCreated = false;
     if (!fs.existsSync(configPath)) {
       const config = {
         providers: [
@@ -717,12 +1030,14 @@ program
         ],
       };
       fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-      console.log(chalk.green(`Created ${configPath}`));
+      console.log(COLORS.success(`✅ Created ${configPath}`));
+      configCreated = true;
     } else {
-      console.log(chalk.yellow(`Skipped ${configPath} (exists)`));
+      console.log(COLORS.warning(`⚠️  Skipped ${configPath} (already exists)`));
     }
 
     const policyPath = path.resolve(process.cwd(), 'toknxr.policy.json');
+    let policyCreated = false;
     if (!fs.existsSync(policyPath)) {
       const policy = {
         version: '1',
@@ -731,9 +1046,36 @@ program
         webhookUrl: '',
       };
       fs.writeFileSync(policyPath, JSON.stringify(policy, null, 2));
-      console.log(chalk.green(`Created ${policyPath}`));
+      console.log(COLORS.success(`✅ Created ${policyPath}`));
+      policyCreated = true;
     } else {
-      console.log(chalk.yellow(`Skipped ${policyPath} (exists)`));
+      console.log(COLORS.warning(`⚠️  Skipped ${policyPath} (already exists)`));
+    }
+
+    console.log();
+
+    if (envCreated || configCreated || policyCreated) {
+      console.log(createSuccessBox(
+        'TokNXR Initialization Complete!',
+        'Your AI analytics environment is ready to use'
+      ));
+      console.log();
+      console.log(COLORS.accent('🚀 Next Steps:'));
+      console.log(`   ${COLORS.muted('1.')} ${COLORS.primary('Add your API keys to')} ${COLORS.highlight('.env')} ${COLORS.muted('file')}`);
+      console.log(`   ${COLORS.muted('2.')} ${COLORS.primary('Run')} ${COLORS.highlight('toknxr start')} ${COLORS.primary('to launch the proxy server')}`);
+      console.log(`   ${COLORS.muted('3.')} ${COLORS.primary('Point your AI tools to')} ${COLORS.highlight('http://localhost:8788')}`);
+      console.log(`   ${COLORS.muted('4.')} ${COLORS.primary('Use')} ${COLORS.highlight('toknxr stats')} ${COLORS.primary('to view analytics')}`);
+      console.log();
+      console.log(COLORS.accent('💡 Pro Tips:'));
+      console.log(`   ${COLORS.muted('•')} ${COLORS.primary('Run')} ${COLORS.highlight('toknxr doctor')} ${COLORS.primary('to verify everything is working')}`);
+      console.log(`   ${COLORS.muted('•')} ${COLORS.primary('Check')} ${COLORS.highlight('toknxr.policy.json')} ${COLORS.primary('to configure budget limits')}`);
+      console.log(`   ${COLORS.muted('•')} ${COLORS.primary('Use')} ${COLORS.highlight('toknxr menu')} ${COLORS.primary('for the interactive interface')}`);
+    } else {
+      console.log(createErrorBox(
+        'All Files Already Exist',
+        'TokNXR appears to be already initialized in this directory',
+        'Use "toknxr doctor" to verify your setup'
+      ));
     }
   });
 
@@ -2482,7 +2824,22 @@ program
   .command('doctor')
   .description('Validate environment, config, and runtime readiness')
   .action(async () => {
-    const results: { label: string; ok: boolean; hint?: string }[] = [];
+    // Import branding for enhanced doctor experience
+    const {
+      TOKNXR_COMPACT_LOGO,
+      createSuccessBox,
+      createErrorBox,
+      COLORS,
+      createVersionInfo
+    } = await import('./branding.js');
+
+    console.clear();
+    console.log(TOKNXR_COMPACT_LOGO);
+    console.log(COLORS.accent('🏥 TokNXR System Doctor'));
+    console.log(COLORS.muted('Diagnosing your AI analytics environment...'));
+    console.log();
+
+    const results: { label: string; ok: boolean; hint?: string; category: string }[] = [];
 
     // Filesystem checks
     const configPath = path.resolve(process.cwd(), 'toknxr.config.json');
@@ -2490,8 +2847,9 @@ program
 
     if (fs.existsSync(configPath)) {
       results.push({
-        label: `Provider config at ${configPath}`,
+        label: `Provider configuration`,
         ok: true,
+        category: 'config'
       });
       try {
         const configFile = fs.readFileSync(configPath, 'utf8');
@@ -2501,13 +2859,15 @@ program
           label: `Parse toknxr.config.json`,
           ok: false,
           hint: `Error parsing config file: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          category: 'config'
         });
       }
     } else {
       results.push({
-        label: `Provider config at ${configPath}`,
+        label: `Provider configuration`,
         ok: false,
         hint: 'Run: toknxr init',
+        category: 'config'
       });
     }
 
@@ -2517,23 +2877,26 @@ program
         if (provider.apiKeyEnvVar) {
           const apiKey = process.env[provider.apiKeyEnvVar];
           results.push({
-            label: `${provider.name} API Key (${provider.apiKeyEnvVar})`,
+            label: `${provider.name} API Key`,
             ok: !!apiKey,
             hint: `Set ${provider.apiKeyEnvVar} in your environment or .env file`,
+            category: 'auth'
           });
         } else {
           results.push({
             label: `${provider.name} API Key`,
             ok: true,
             hint: 'No API key required for this provider',
+            category: 'auth'
           });
         }
       }
     } else if (providerConfig) {
       results.push({
-        label: 'No providers configured in toknxr.config.json',
+        label: 'Provider configuration',
         ok: false,
         hint: 'Edit toknxr.config.json to add AI providers',
+        category: 'config'
       });
     }
 
@@ -2541,9 +2904,18 @@ program
     try {
       // Touch file if missing (no-op if exists)
       if (!fs.existsSync(logPath)) fs.writeFileSync(logPath, '');
-      results.push({ label: `interactions.log at ${logPath}`, ok: true });
+      results.push({ 
+        label: `Interaction logs`, 
+        ok: true,
+        category: 'storage'
+      });
     } catch {
-      results.push({ label: `interactions.log at ${logPath}`, ok: false, hint: 'Check write permissions' });
+      results.push({ 
+        label: `Interaction logs`, 
+        ok: false, 
+        hint: 'Check write permissions',
+        category: 'storage'
+      });
     }
 
     // Runtime checks (proxy health if running)
@@ -2555,9 +2927,10 @@ program
       proxyHealthOk = false;
     }
     results.push({
-      label: 'Proxy server running (http://localhost:8788/health)',
+      label: 'Proxy server',
       ok: proxyHealthOk,
-      hint: 'Run: toknxr start (then retry doctor)'
+      hint: 'Run: toknxr start (then retry doctor)',
+      category: 'runtime'
     });
 
     // AI Provider Connectivity Tests (only if proxy is running and config is loaded)
@@ -2567,9 +2940,10 @@ program
         const apiKey = provider.apiKeyEnvVar ? process.env[provider.apiKeyEnvVar] : undefined;
         if (provider.apiKeyEnvVar && !apiKey) {
           results.push({
-            label: `${provider.name} connection test`,
+            label: `${provider.name} connectivity`,
             ok: false,
             hint: `Skipped: API key (${provider.apiKeyEnvVar}) not set.`,
+            category: 'connectivity'
           });
           continue;
         }
@@ -2579,22 +2953,25 @@ program
           anyProviderConnected = true;
         }
         results.push({
-          label: `${provider.name} connection test`,
+          label: `${provider.name} connectivity`,
           ok: ok,
           hint: ok ? undefined : message,
+          category: 'connectivity'
         });
       }
     } else if (proxyHealthOk && !providerConfig) {
       results.push({
-        label: 'AI Provider connection tests',
+        label: 'AI Provider connectivity',
         ok: false,
         hint: 'Skipped: toknxr.config.json not loaded or invalid.',
+        category: 'connectivity'
       });
     } else if (!proxyHealthOk) {
       results.push({
-        label: 'AI Provider connection tests',
+        label: 'AI Provider connectivity',
         ok: false,
         hint: 'Skipped: Proxy server is not running.',
+        category: 'connectivity'
       });
     }
 
@@ -2616,42 +2993,94 @@ program
       if (firstConnectedProvider) {
         const { ok, message } = generateSampleInteraction(firstConnectedProvider.name, logPath);
         results.push({
-          label: 'Generate sample interaction',
+          label: 'Sample data generation',
           ok: ok,
           hint: ok ? 'Run: toknxr stats or toknxr code-analysis' : message,
+          category: 'testing'
         });
       }
     } else if (logFileSize > 0) {
       results.push({
-        label: 'Generate sample interaction',
+        label: 'Sample data generation',
         ok: true,
         hint: 'interactions.log already contains data.',
+        category: 'testing'
       });
     } else {
       results.push({
-        label: 'Generate sample interaction',
+        label: 'Sample data generation',
         ok: false,
         hint: 'No connected providers or interactions.log already has data.',
+        category: 'testing'
       });
     }
 
-    // Print report
-    console.log(chalk.blue.bold('\nTokNXR Doctor Report'));
-    console.log(chalk.gray('━'.repeat(60)));
+    // Group results by category
+    const categories = {
+      config: 'Configuration Files',
+      auth: 'Authentication',
+      storage: 'Data Storage',
+      runtime: 'Runtime Services',
+      connectivity: 'Provider Connectivity',
+      testing: 'Sample Data'
+    };
+
+    // Print report with enhanced formatting
     let allOk = true;
-    for (const r of results) {
-      allOk &&= r.ok;
-      const mark = r.ok ? chalk.green('✔') : chalk.red('✖');
-      const line = `${mark} ${r.label}` + (r.ok ? '' : chalk.gray(` — ${r.hint}`));
-      console.log(line);
+    let totalIssues = 0;
+
+    Object.entries(categories).forEach(([categoryKey, categoryName]) => {
+      const categoryResults = results.filter(r => r.category === categoryKey);
+      if (categoryResults.length === 0) return;
+
+      console.log(COLORS.accent(`📋 ${categoryName}:`));
+      categoryResults.forEach(r => {
+        allOk &&= r.ok;
+        if (!r.ok) totalIssues++;
+        
+        const mark = r.ok ? COLORS.success('✅') : COLORS.error('❌');
+        const label = r.ok ? COLORS.primary(r.label) : COLORS.error(r.label);
+        const hint = r.ok || !r.hint ? '' : COLORS.muted(` — ${r.hint}`);
+        console.log(`   ${mark} ${label}${hint}`);
+      });
+      console.log();
+    });
+
+    console.log(COLORS.muted('━'.repeat(80)));
+    
+    if (allOk) {
+      console.log(createSuccessBox(
+        'All Systems Green!',
+        'TokNXR is ready to track and analyze your AI interactions'
+      ));
+      console.log();
+      console.log(COLORS.accent('🚀 You\'re all set! Try these commands:'));
+      console.log(`   ${COLORS.muted('•')} ${COLORS.highlight('toknxr start')} ${COLORS.muted('- Begin AI tracking')}`);
+      console.log(`   ${COLORS.muted('•')} ${COLORS.highlight('toknxr menu')} ${COLORS.muted('- Interactive command center')}`);
+      console.log(`   ${COLORS.muted('•')} ${COLORS.highlight('toknxr stats')} ${COLORS.muted('- View analytics dashboard')}`);
+    } else {
+      console.log(createErrorBox(
+        `${totalIssues} Issue${totalIssues !== 1 ? 's' : ''} Found`,
+        'TokNXR needs some configuration before it can run properly',
+        'Review the issues above and follow the recommended fixes'
+      ));
+      console.log();
+      console.log(COLORS.accent('🛠️ Quick Fixes:'));
+      
+      if (results.some(r => !r.ok && r.category === 'config')) {
+        console.log(`   ${COLORS.muted('•')} ${COLORS.highlight('toknxr init')} ${COLORS.muted('- Set up configuration files')}`);
+      }
+      if (results.some(r => !r.ok && r.category === 'auth')) {
+        console.log(`   ${COLORS.muted('•')} ${COLORS.primary('Add API keys to your .env file')}`);
+      }
+      if (results.some(r => !r.ok && r.category === 'runtime')) {
+        console.log(`   ${COLORS.muted('•')} ${COLORS.highlight('toknxr start')} ${COLORS.muted('- Launch the proxy server')}`);
+      }
+      console.log(`   ${COLORS.muted('•')} ${COLORS.highlight('toknxr doctor')} ${COLORS.muted('- Re-run this diagnostic')}`);
     }
 
-    console.log(chalk.gray('━'.repeat(60)));
-    if (allOk) {
-      console.log(chalk.green('All essential checks passed. You are ready to use TokNXR.'));
-    } else {
-      console.log(chalk.yellow('Some checks failed. Fix the hints above and re-run: toknxr doctor'));
-    }
+    console.log();
+    console.log(createVersionInfo('0.4.0'));
   });
 
 // Helper functions for search highlighting
@@ -2687,6 +3116,12 @@ function highlightMatch(text: string, query: string): string {
 }
 
 program.exitOverride();
+
+// Default action when no command is specified - show the enhanced menu
+program.action(async () => {
+  console.log(chalk.gray('No command specified. Opening interactive menu...\n'));
+  await program.parseAsync(['node', 'toknxr', 'menu']);
+});
 
 try {
   program.parse(process.argv);
