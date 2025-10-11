@@ -1,939 +1,791 @@
 /**
  * Enhanced Hallucination Detector
- * Implementation of CodeHalu research methodology for systematic code hallucination detection
- * 
- * Based on: "CodeHalu: Investigating Code Hallucinations in LLMs via Execution-based Verification"
- * @see https://github.com/yuchen814/CodeHalu
+ * Core detection algorithm implementing CodeHalu methodology
  */
 
 import {
-  CodeHaluResult,
   HallucinationCategory,
-  HallucinationType,
-  HallucinationSubtype,
-  DetectionOptions,
+  CodeHaluResult,
   ExecutionResult,
-  DetectionMetadata,
   Recommendation,
-  CodeContext,
-  PatternMatch,
-  CodeStructure,
-  DEFAULT_DETECTION_OPTIONS,
-  DEFAULT_BUSINESS_IMPACT,
-  ERROR_CATEGORY_MAP,
+  DetectionMethod,
+  AnalysisMetadata,
 } from './types/hallucination-types.js';
 
-import { HallucinationPatterns } from './hallucination-patterns.js';
+import {
+  HallucinationPatterns,
+  PatternMatchResult,
+  detectAllPatterns,
+  getPatternStatistics,
+} from './hallucination-patterns.js';
+
+import { ExecutionSandbox } from './execution-sandbox.js';
 
 /**
- * Main CodeHalu detection engine following the research methodology
+ * Detection configuration options
+ */
+export interface DetectionConfig {
+  enableStaticAnalysis: boolean;
+  enableExecutionAnalysis: boolean;
+  enablePatternMatching: boolean;
+  enableStatisticalAnalysis: boolean;
+  maxExecutionTime: number;
+  confidenceThreshold: number;
+  severityThreshold: 'low' | 'medium' | 'high' | 'critical';
+}
+
+/**
+ * Default detection configuration
+ */
+const DEFAULT_CONFIG: DetectionConfig = {
+  enableStaticAnalysis: true,
+  enableExecutionAnalysis: true,
+  enablePatternMatching: true,
+  enableStatisticalAnalysis: true,
+  maxExecutionTime: 5000,
+  confidenceThreshold: 0.6,
+  severityThreshold: 'medium',
+};
+
+/**
+ * Enhanced CodeHalu detection engine
  */
 export class CodeHaluDetector {
-  private detectionVersion = '1.0.0';
-  private startTime: number = 0;
-  private patternMatcher: HallucinationPatterns;
+  private config: DetectionConfig;
+  private executionSandbox: ExecutionSandbox;
+  private detectionHistory: Map<string, CodeHaluResult> = new Map();
 
-  constructor() {
-    this.patternMatcher = new HallucinationPatterns();
+  constructor(config: Partial<DetectionConfig> = {}) {
+    this.config = { ...DEFAULT_CONFIG, ...config };
+    this.executionSandbox = new ExecutionSandbox({
+      maxExecutionTimeMs: this.config.maxExecutionTime,
+      maxMemoryMB: 128,
+      maxCpuCores: 1,
+    });
   }
 
   /**
-   * Primary detection method following CodeHalu algorithm
-   * 
-   * @param code - Source code to analyze
-   * @param language - Programming language (currently supports 'python')
-   * @param options - Detection configuration options
-   * @returns Complete hallucination analysis result
+   * Main detection method - orchestrates all detection techniques
    */
   async detectHallucinations(
     code: string,
     language: string = 'python',
-    options: DetectionOptions = {}
+    context?: {
+      prompt?: string;
+      expectedOutput?: any;
+      previousInteractions?: string[];
+    }
   ): Promise<CodeHaluResult> {
-    this.startTime = Date.now();
-    const config = { ...DEFAULT_DETECTION_OPTIONS, ...options };
-
+    const startTime = Date.now();
+    
     try {
-      // Step 1: Validate input and prepare analysis
+      // Input validation
       this.validateInput(code, language);
-      
-      // Step 2: Perform static analysis for immediate issues
-      const staticCategories = await this.performStaticAnalysis(code, language, config);
-      
-      // Step 3: Execute code if enabled and safe
-      let executionResult: ExecutionResult | undefined;
-      let executionCategories: HallucinationCategory[] = [];
-      
-      if (config.enableExecution && this.isExecutionSafe(code)) {
-        executionResult = await this.executeCodeSafely(code, language, config);
-        executionCategories = await this.analyzeExecutionResult(executionResult, code);
+
+      // Initialize result structure
+      const result: CodeHaluResult = {
+        overallHallucinationRate: 0,
+        categories: [],
+        executionResult: undefined,
+        recommendations: [],
+        analysisMetadata: {
+          detectionTimeMs: 0,
+          codeLength: code.length,
+          language,
+          detectionMethods: [],
+          analysisVersion: '1.0.0',
+        },
+        businessImpact: {
+          estimatedDevTimeWasted: 0,
+          costMultiplier: 1.0,
+          qualityImpact: 0,
+          costOfHallucinations: 0,
+        },
+      };
+
+      // 1. Static Analysis (Pattern-based detection)
+      if (this.config.enableStaticAnalysis && this.config.enablePatternMatching) {
+        await this.performStaticAnalysis(code, result);
       }
+
+      // 2. Execution-based Analysis
+      if (this.config.enableExecutionAnalysis && language === 'python') {
+        await this.performExecutionAnalysis(code, result, context);
+      }
+
+      // 3. Statistical Analysis (if enabled and we have history)
+      if (this.config.enableStatisticalAnalysis) {
+        await this.performStatisticalAnalysis(code, result, context);
+      }
+
+      // 4. Calculate overall hallucination rate
+      this.calculateOverallHallucinationRate(result);
+
+      // 5. Generate recommendations
+      this.generateRecommendations(result, context);
+
+      // 6. Calculate business impact
+      this.calculateBusinessImpact(result);
+
+      // 7. Finalize metadata
+      result.analysisMetadata.detectionTimeMs = Date.now() - startTime;
+
+      // Store in history for statistical analysis
+      const codeHash = this.generateCodeHash(code);
+      this.detectionHistory.set(codeHash, result);
+
+      return result;
+
+    } catch (error) {
+      // Graceful error handling
+      return this.createErrorResult(error, code, language, Date.now() - startTime);
+    }
+  }
+
+  /**
+   * Perform static analysis using pattern matching
+   */
+  private async performStaticAnalysis(code: string, result: CodeHaluResult): Promise<void> {
+    try {
+      const patternResults = detectAllPatterns(code);
+      const categories = HallucinationPatterns.convertToHallucinationCategories(patternResults);
       
-      // Step 4: Combine all detected categories
-      const allCategories = [...staticCategories, ...executionCategories];
-      const filteredCategories = this.filterByConfidence(allCategories, config.confidenceThreshold);
+      // Filter by confidence threshold
+      const filteredCategories = categories.filter(
+        category => category.confidence >= this.config.confidenceThreshold
+      );
+
+      result.categories.push(...filteredCategories);
+      result.analysisMetadata.detectionMethods.push('static');
+
+      // Add pattern-specific metadata
+      const stats = getPatternStatistics(patternResults);
+      result.analysisMetadata.patternStats = stats;
+
+    } catch (error) {
+      console.warn('Static analysis failed:', error);
+      // Continue with other detection methods
+    }
+  }
+
+  /**
+   * Perform execution-based analysis using sandbox
+   */
+  private async performExecutionAnalysis(
+    code: string,
+    result: CodeHaluResult,
+    context?: any
+  ): Promise<void> {
+    try {
+      // Security check first
+      const securityAssessment = this.executionSandbox.validateSafety(code);
       
-      // Step 5: Calculate overall metrics
-      const overallRate = this.calculateHallucinationRate(filteredCategories);
-      const qualityImpact = this.calculateQualityImpact(filteredCategories);
-      
-      // Step 6: Generate recommendations if enabled
-      const recommendations = config.generateRecommendations 
-        ? this.generateRecommendations(filteredCategories, config.codeContext)
-        : [];
-      
-      // Step 7: Compile final result
-      return this.compileResult(
-        filteredCategories,
-        overallRate,
-        qualityImpact,
-        recommendations,
-        executionResult,
-        code,
-        language
+      if (!securityAssessment.isSafe) {
+        // Add security-related hallucination categories
+        result.categories.push({
+          type: 'resource',
+          subtype: 'physical_constraint',
+          severity: 'critical',
+          confidence: securityAssessment.confidence,
+          description: 'Code contains potentially dangerous operations',
+          evidence: securityAssessment.risks.map(risk => ({
+            type: 'security_risk',
+            content: risk,
+            confidence: 0.9,
+          })),
+          suggestedFix: 'Remove dangerous operations or add proper security measures',
+          businessImpact: {
+            estimatedDevTimeWasted: 4.0,
+            costMultiplier: 2.0,
+            qualityImpact: 50,
+            costOfHallucinations: 400.0,
+          },
+        });
+        return;
+      }
+
+      // Execute the code
+      const executionResult = await this.executionSandbox.execute(code);
+      result.executionResult = executionResult;
+      result.analysisMetadata.detectionMethods.push('execution');
+
+      // Analyze execution results for hallucinations
+      await this.analyzeExecutionResults(executionResult, result, context);
+
+    } catch (error) {
+      console.warn('Execution analysis failed:', error);
+      // Add execution failure as potential hallucination indicator
+      result.categories.push({
+        type: 'logic',
+        subtype: 'logic_breakdown',
+        severity: 'high',
+        confidence: 0.8,
+        description: 'Code failed to execute properly',
+        evidence: [{
+          type: 'execution_error',
+          content: error instanceof Error ? error.message : 'Unknown execution error',
+          confidence: 0.9,
+        }],
+        suggestedFix: 'Review code for syntax and logical errors',
+        businessImpact: {
+          estimatedDevTimeWasted: 3.0,
+          costMultiplier: 1.5,
+          qualityImpact: 40,
+          costOfHallucinations: 225.0,
+        },
+      });
+    }
+  }
+
+  /**
+   * Analyze execution results for hallucination indicators
+   */
+  private async analyzeExecutionResults(
+    executionResult: ExecutionResult,
+    result: CodeHaluResult,
+    context?: any
+  ): Promise<void> {
+    // 1. Check for runtime errors
+    if (executionResult.errors.length > 0) {
+      executionResult.errors.forEach(error => {
+        const category = this.mapExecutionErrorToCategory(error);
+        if (category) {
+          result.categories.push(category);
+        }
+      });
+    }
+
+    // 2. Check for resource usage anomalies
+    if (executionResult.resourceUsage.memoryMB > 100) {
+      result.categories.push({
+        type: 'resource',
+        subtype: 'physical_constraint',
+        severity: 'medium',
+        confidence: 0.7,
+        description: 'Code uses excessive memory',
+        evidence: [{
+          type: 'resource_usage',
+          content: `Memory usage: ${executionResult.resourceUsage.memoryMB}MB`,
+          confidence: 0.9,
+        }],
+        suggestedFix: 'Optimize memory usage or add memory limits',
+        businessImpact: {
+          estimatedDevTimeWasted: 1.5,
+          costMultiplier: 1.2,
+          qualityImpact: 20,
+          costOfHallucinations: 90.0,
+        },
+      });
+    }
+
+    // 3. Check for timeout issues
+    if (executionResult.timedOut) {
+      result.categories.push({
+        type: 'resource',
+        subtype: 'computational_boundary',
+        severity: 'high',
+        confidence: 0.9,
+        description: 'Code execution timed out',
+        evidence: [{
+          type: 'timeout',
+          content: `Execution exceeded ${this.config.maxExecutionTime}ms`,
+          confidence: 1.0,
+        }],
+        suggestedFix: 'Optimize algorithm or add proper termination conditions',
+        businessImpact: {
+          estimatedDevTimeWasted: 3.0,
+          costMultiplier: 1.6,
+          qualityImpact: 35,
+          costOfHallucinations: 240.0,
+        },
+      });
+    }
+
+    // 4. Check output consistency (if expected output provided)
+    if (context?.expectedOutput && executionResult.output) {
+      const outputConsistency = this.checkOutputConsistency(
+        executionResult.output,
+        context.expectedOutput
       );
       
+      if (outputConsistency.confidence < 0.7) {
+        result.categories.push({
+          type: 'logic',
+          subtype: 'logic_deviation',
+          severity: 'medium',
+          confidence: 1.0 - outputConsistency.confidence,
+          description: 'Output does not match expected result',
+          evidence: [{
+            type: 'output_mismatch',
+            content: `Expected: ${context.expectedOutput}, Got: ${executionResult.output}`,
+            confidence: 0.8,
+          }],
+          suggestedFix: 'Review logic and ensure correct implementation',
+        businessImpact: {
+          estimatedDevTimeWasted: 2.5,
+          costMultiplier: 1.3,
+          qualityImpact: 25,
+          costOfHallucinations: 125.0,
+        },
+        });
+      }
+    }
+  }
+
+  /**
+   * Perform statistical analysis based on historical patterns
+   */
+  private async performStatisticalAnalysis(
+    code: string,
+    result: CodeHaluResult,
+    context?: any
+  ): Promise<void> {
+    try {
+      // Analyze patterns across historical data
+      const historicalPatterns = this.analyzeHistoricalPatterns(code);
+      
+      if (historicalPatterns.length > 0) {
+        result.analysisMetadata.detectionMethods.push('statistical');
+        
+        // Add statistical confidence adjustments
+        result.categories.forEach(category => {
+          const historicalMatch = historicalPatterns.find(
+            pattern => pattern.categoryType === category.type
+          );
+          
+          if (historicalMatch) {
+            // Adjust confidence based on historical reliability
+            category.confidence = Math.min(1.0, 
+              category.confidence * historicalMatch.reliability
+            );
+          }
+        });
+      }
     } catch (error) {
-      // Handle detection errors gracefully
-      return this.createErrorResult(error, code, language);
+      console.warn('Statistical analysis failed:', error);
     }
   }
 
   /**
-   * Perform static analysis to detect hallucination patterns
+   * Calculate overall hallucination rate
    */
-  private async performStaticAnalysis(
-    code: string,
-    language: string,
-    options: DetectionOptions
-  ): Promise<HallucinationCategory[]> {
-    const categories: HallucinationCategory[] = [];
-    
-    // Use enhanced pattern detection
-    const patternResult = this.patternMatcher.detectPatterns(code);
-    
-    // Filter by focus categories if specified
-    const filteredCategories = options.focusCategories 
-      ? patternResult.categories.filter(cat => options.focusCategories!.includes(cat.type))
-      : patternResult.categories;
-    
-    categories.push(...filteredCategories);
-    
-    // Also run legacy detection methods for additional coverage
-    if (options.focusCategories?.includes('mapping')) {
-      categories.push(...await this.detectMappingHallucinations(code));
+  private calculateOverallHallucinationRate(result: CodeHaluResult): void {
+    if (result.categories.length === 0) {
+      result.overallHallucinationRate = 0;
+      return;
     }
+
+    // Weight by severity and confidence
+    const severityWeights = { low: 1, medium: 2, high: 3, critical: 4 };
     
-    if (options.focusCategories?.includes('naming')) {
-      categories.push(...await this.detectNamingHallucinations(code));
-    }
-    
-    if (options.focusCategories?.includes('resource')) {
-      categories.push(...await this.detectResourceHallucinations(code));
-    }
-    
-    if (options.focusCategories?.includes('logic')) {
-      categories.push(...await this.detectLogicHallucinations(code));
-    }
-    
-    // Remove duplicates based on evidence and line numbers
-    return this.deduplicateCategories(categories);
+    let totalWeight = 0;
+    let weightedSum = 0;
+
+    result.categories.forEach(category => {
+      const weight = severityWeights[category.severity] * category.confidence;
+      totalWeight += weight;
+      weightedSum += weight;
+    });
+
+    // Normalize to 0-1 scale
+    const maxPossibleWeight = result.categories.length * 4; // All critical with confidence 1.0
+    result.overallHallucinationRate = Math.min(1.0, weightedSum / maxPossibleWeight);
   }
 
   /**
-   * Detect mapping hallucinations - issues with data types, values, and structures
+   * Generate actionable recommendations
    */
-  private async detectMappingHallucinations(code: string): Promise<HallucinationCategory[]> {
-    const categories: HallucinationCategory[] = [];
-    
-    // Data compliance hallucinations
-    const dataComplianceIssues = this.detectDataComplianceIssues(code);
-    categories.push(...dataComplianceIssues);
-    
-    // Structure access hallucinations
-    const structureAccessIssues = this.detectStructureAccessIssues(code);
-    categories.push(...structureAccessIssues);
-    
-    return categories;
-  }
+  private generateRecommendations(result: CodeHaluResult, context?: any): void {
+    const recommendations: Recommendation[] = [];
 
-  /**
-   * Detect naming hallucinations - memory and factual issues with variables, attributes, modules
-   */
-  private async detectNamingHallucinations(code: string): Promise<HallucinationCategory[]> {
-    const categories: HallucinationCategory[] = [];
-    
-    // Identity hallucinations
-    const identityIssues = this.detectIdentityIssues(code);
-    categories.push(...identityIssues);
-    
-    // External source hallucinations
-    const externalSourceIssues = this.detectExternalSourceIssues(code);
-    categories.push(...externalSourceIssues);
-    
-    return categories;
-  }
+    // Group categories by type for targeted recommendations
+    const categoryGroups = this.groupCategoriesByType(result.categories);
 
-  /**
-   * Detect resource hallucinations - issues with resource consumption and control flow
-   */
-  private async detectResourceHallucinations(code: string): Promise<HallucinationCategory[]> {
-    const categories: HallucinationCategory[] = [];
-    
-    // Physical constraint hallucinations
-    const physicalConstraintIssues = this.detectPhysicalConstraintIssues(code);
-    categories.push(...physicalConstraintIssues);
-    
-    // Computational boundary hallucinations
-    const computationalBoundaryIssues = this.detectComputationalBoundaryIssues(code);
-    categories.push(...computationalBoundaryIssues);
-    
-    return categories;
-  }
-
-  /**
-   * Detect logic hallucinations - discrepancies between expected and actual outcomes
-   */
-  private async detectLogicHallucinations(code: string): Promise<HallucinationCategory[]> {
-    const categories: HallucinationCategory[] = [];
-    
-    // Logic deviation hallucinations
-    const logicDeviationIssues = this.detectLogicDeviationIssues(code);
-    categories.push(...logicDeviationIssues);
-    
-    // Logic breakdown hallucinations
-    const logicBreakdownIssues = this.detectLogicBreakdownIssues(code);
-    categories.push(...logicBreakdownIssues);
-    
-    return categories;
-  }
-
-  /**
-   * Detect data compliance issues (type mismatches, rule violations)
-   */
-  private detectDataComplianceIssues(code: string): HallucinationCategory[] {
-    const issues: HallucinationCategory[] = [];
-    
-    // Pattern: Type mismatches (e.g., string operations on numbers)
-    const typeMismatchPattern = /(\w+)\s*\+\s*['"]|['"].*\+\s*(\d+)/g;
-    let match;
-    while ((match = typeMismatchPattern.exec(code)) !== null) {
-      issues.push(this.createHallucinationCategory(
-        'mapping',
-        'data_compliance',
-        'medium',
-        0.8,
-        [`Type mismatch detected at: ${match[0]}`],
-        'pattern',
-        this.getLineNumber(code, match.index)
-      ));
-    }
-    
-    // Pattern: Invalid method calls on wrong types
-    const invalidMethodPattern = /(\d+)\.(\w+)\(|(\w+)\.(\w+)\(\s*\)/g;
-    while ((match = invalidMethodPattern.exec(code)) !== null) {
-      if (match[1] && ['append', 'extend', 'remove'].includes(match[2])) {
-        issues.push(this.createHallucinationCategory(
-          'mapping',
-          'data_compliance',
-          'high',
-          0.9,
-          [`Invalid method call on number: ${match[0]}`],
-          'pattern',
-          this.getLineNumber(code, match.index)
-        ));
+    Object.entries(categoryGroups).forEach(([type, categories]) => {
+      const recommendation = this.generateTypeSpecificRecommendation(
+        type as any,
+        categories,
+        context
+      );
+      if (recommendation) {
+        recommendations.push(recommendation);
       }
+    });
+
+    // Add general recommendations based on overall analysis
+    if (result.overallHallucinationRate > 0.7) {
+      recommendations.push({
+        priority: 'high',
+        title: 'Critical Code Review Required',
+        description: 'Multiple serious issues detected that require immediate attention',
+        actionItems: [
+          'Conduct thorough code review',
+          'Test with multiple input scenarios',
+          'Consider alternative implementation approach',
+        ],
+        expectedImpact: 'Prevent production issues and reduce debugging time',
+        estimatedTimeToFix: '2-4 hours',
+      });
     }
-    
-    return issues;
+
+    result.recommendations = recommendations;
   }
 
   /**
-   * Detect structure access issues (non-existent indices, keys)
+   * Calculate business impact metrics
    */
-  private detectStructureAccessIssues(code: string): HallucinationCategory[] {
-    const issues: HallucinationCategory[] = [];
-    
-    // Pattern: Potential index out of bounds
-    const indexAccessPattern = /(\w+)\[(\d+|\w+)\]/g;
-    let match;
-    while ((match = indexAccessPattern.exec(code)) !== null) {
-      // Check if index is hardcoded and potentially problematic
-      if (/^\d+$/.test(match[2]) && parseInt(match[2]) > 10) {
-        issues.push(this.createHallucinationCategory(
-          'mapping',
-          'structure_access',
-          'medium',
-          0.6,
-          [`Potential index out of bounds: ${match[0]}`],
-          'pattern',
-          this.getLineNumber(code, match.index)
-        ));
-      }
-    }
-    
-    // Pattern: Dictionary key access without checking
-    const keyAccessPattern = /(\w+)\[['"](\w+)['"]\]/g;
-    while ((match = keyAccessPattern.exec(code)) !== null) {
-      // Check if there's no prior key existence check
-      const beforeCode = code.substring(0, match.index);
-      if (!beforeCode.includes(`'${match[2]}' in ${match[1]}`) && 
-          !beforeCode.includes(`"${match[2]}" in ${match[1]}`)) {
-        issues.push(this.createHallucinationCategory(
-          'mapping',
-          'structure_access',
-          'medium',
-          0.7,
-          [`Unchecked dictionary key access: ${match[0]}`],
-          'pattern',
-          this.getLineNumber(code, match.index)
-        ));
-      }
-    }
-    
-    return issues;
+  private calculateBusinessImpact(result: CodeHaluResult): void {
+    const impact = result.businessImpact;
+
+    // Sum up individual category impacts
+    result.categories.forEach(category => {
+      impact.estimatedDevTimeWasted += category.businessImpact.estimatedDevTimeWasted;
+      impact.qualityImpact = Math.max(impact.qualityImpact, category.businessImpact.qualityImpact);
+      impact.costMultiplier = Math.max(impact.costMultiplier, category.businessImpact.costMultiplier);
+    });
+
+    // Calculate cost of hallucinations (assuming $100/hour developer rate)
+    const hourlyRate = 100;
+    impact.costOfHallucinations = impact.estimatedDevTimeWasted * hourlyRate;
+
+    // Apply cost multiplier for indirect costs
+    impact.costOfHallucinations *= impact.costMultiplier;
   }
 
   /**
-   * Detect identity issues (undefined variables, unassigned variables)
+   * Helper methods
    */
-  private detectIdentityIssues(code: string): HallucinationCategory[] {
-    const issues: HallucinationCategory[] = [];
-    
-    // Simple variable usage analysis
-    const lines = code.split('\n');
-    const definedVars = new Set<string>();
-    
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      
-      // Track variable definitions
-      const assignmentMatch = line.match(/^(\w+)\s*=/);
-      if (assignmentMatch) {
-        definedVars.add(assignmentMatch[1]);
-      }
-      
-      // Check for variable usage
-      const usageMatches = line.matchAll(/\b(\w+)\b/g);
-      for (const match of usageMatches) {
-        const varName = match[1];
-        
-        // Skip Python keywords and builtins
-        if (this.isPythonKeywordOrBuiltin(varName)) continue;
-        
-        // Check if variable is used before definition
-        if (!definedVars.has(varName) && !line.includes(`${varName} =`)) {
-          issues.push(this.createHallucinationCategory(
-            'naming',
-            'identity',
-            'high',
-            0.8,
-            [`Variable '${varName}' used before definition`],
-            'static',
-            i + 1
-          ));
-        }
-      }
-    }
-    
-    return issues;
-  }
 
-  /**
-   * Detect external source issues (non-existent modules, import failures)
-   */
-  private detectExternalSourceIssues(code: string): HallucinationCategory[] {
-    const issues: HallucinationCategory[] = [];
-    
-    // Pattern: Import statements
-    const importPattern = /^(?:from\s+(\w+(?:\.\w+)*)\s+)?import\s+(\w+(?:\s*,\s*\w+)*)/gm;
-    let match;
-    
-    while ((match = importPattern.exec(code)) !== null) {
-      const moduleName = match[1] || match[2].split(',')[0].trim();
-      
-      // Check for potentially non-existent modules
-      if (this.isPotentiallyNonExistentModule(moduleName)) {
-        issues.push(this.createHallucinationCategory(
-          'naming',
-          'external_source',
-          'high',
-          0.9,
-          [`Potentially non-existent module: ${moduleName}`],
-          'pattern',
-          this.getLineNumber(code, match.index)
-        ));
-      }
-    }
-    
-    return issues;
-  }
-
-  /**
-   * Detect physical constraint issues (memory, stack depth)
-   */
-  private detectPhysicalConstraintIssues(code: string): HallucinationCategory[] {
-    const issues: HallucinationCategory[] = [];
-    
-    // Pattern: Recursive functions without base case
-    const functionPattern = /def\s+(\w+)\s*\([^)]*\):/g;
-    let match;
-    
-    while ((match = functionPattern.exec(code)) !== null) {
-      const funcName = match[1];
-      const funcStart = match.index;
-      const funcEnd = this.findFunctionEnd(code, funcStart);
-      const funcBody = code.substring(funcStart, funcEnd);
-      
-      // Check if function calls itself
-      if (funcBody.includes(funcName + '(')) {
-        // Check for base case
-        if (!funcBody.includes('return') || !funcBody.includes('if')) {
-          issues.push(this.createHallucinationCategory(
-            'resource',
-            'physical_constraint',
-            'critical',
-            0.9,
-            [`Recursive function '${funcName}' may lack proper base case`],
-            'static',
-            this.getLineNumber(code, match.index)
-          ));
-        }
-      }
-    }
-    
-    // Pattern: Large data structures
-    const largeListPattern = /\[[^\]]{200,}\]/g;
-    while ((match = largeListPattern.exec(code)) !== null) {
-      issues.push(this.createHallucinationCategory(
-        'resource',
-        'physical_constraint',
-        'medium',
-        0.7,
-        [`Large data structure detected: ${match[0].substring(0, 50)}...`],
-        'pattern',
-        this.getLineNumber(code, match.index)
-      ));
-    }
-    
-    return issues;
-  }
-
-  /**
-   * Detect computational boundary issues (overflow, iteration control)
-   */
-  private detectComputationalBoundaryIssues(code: string): HallucinationCategory[] {
-    const issues: HallucinationCategory[] = [];
-    
-    // Pattern: Infinite loops
-    const whileTruePattern = /while\s+True\s*:/g;
-    let whileMatch;
-    
-    while ((whileMatch = whileTruePattern.exec(code)) !== null) {
-      const loopStart = whileMatch.index;
-      const loopEnd = this.findBlockEnd(code, loopStart);
-      const loopBody = code.substring(loopStart, loopEnd);
-      
-      // Check for break statements
-      if (!loopBody.includes('break') && !loopBody.includes('return')) {
-        issues.push(this.createHallucinationCategory(
-          'resource',
-          'computational_boundary',
-          'critical',
-          0.95,
-          [`Potential infinite loop: while True without break`],
-          'static',
-          this.getLineNumber(code, whileMatch.index)
-        ));
-      }
-    }
-    
-    // Pattern: Large range operations
-    const rangePattern = /range\s*\(\s*(\d+)\s*\)/g;
-    let rangeMatch;
-    while ((rangeMatch = rangePattern.exec(code)) !== null) {
-      const rangeSize = parseInt(rangeMatch[1]);
-      if (rangeSize > 1000000) {
-        issues.push(this.createHallucinationCategory(
-          'resource',
-          'computational_boundary',
-          'high',
-          0.8,
-          [`Large range operation: range(${rangeSize})`],
-          'pattern',
-          this.getLineNumber(code, rangeMatch.index)
-        ));
-      }
-    }
-    
-    return issues;
-  }
-
-  /**
-   * Detect logic deviation issues (incorrect logic, contradictions)
-   */
-  private detectLogicDeviationIssues(code: string): HallucinationCategory[] {
-    const issues: HallucinationCategory[] = [];
-    
-    // Pattern: Contradictory conditions
-    const ifPattern = /if\s+([^:]+):/g;
-    let match;
-    
-    while ((match = ifPattern.exec(code)) !== null) {
-      const condition = match[1].trim();
-      
-      // Check for always false conditions
-      if (condition.includes('False') || condition.includes('0 == 1')) {
-        issues.push(this.createHallucinationCategory(
-          'logic',
-          'logic_deviation',
-          'high',
-          0.9,
-          [`Always false condition: ${condition}`],
-          'static',
-          this.getLineNumber(code, match.index)
-        ));
-      }
-      
-      // Check for contradictory comparisons
-      if (/(\w+)\s*==\s*(\w+)\s+and\s+\1\s*!=\s*\2/.test(condition)) {
-        issues.push(this.createHallucinationCategory(
-          'logic',
-          'logic_deviation',
-          'high',
-          0.95,
-          [`Contradictory condition: ${condition}`],
-          'static',
-          this.getLineNumber(code, match.index)
-        ));
-      }
-    }
-    
-    return issues;
-  }
-
-  /**
-   * Detect logic breakdown issues (stuttering, context loss)
-   */
-  private detectLogicBreakdownIssues(code: string): HallucinationCategory[] {
-    const issues: HallucinationCategory[] = [];
-    
-    // Pattern: Repeated lines (stuttering)
-    const lines = code.split('\n');
-    for (let i = 0; i < lines.length - 1; i++) {
-      const currentLine = lines[i].trim();
-      const nextLine = lines[i + 1].trim();
-      
-      if (currentLine.length > 10 && currentLine === nextLine) {
-        issues.push(this.createHallucinationCategory(
-          'logic',
-          'logic_breakdown',
-          'medium',
-          0.8,
-          [`Repeated line detected: ${currentLine}`],
-          'pattern',
-          i + 1
-        ));
-      }
-    }
-    
-    // Pattern: Incomplete function definitions
-    const incompleteFuncPattern = /def\s+\w+\s*\([^)]*\):\s*$/gm;
-    let incompleteMatch;
-    while ((incompleteMatch = incompleteFuncPattern.exec(code)) !== null) {
-      issues.push(this.createHallucinationCategory(
-        'logic',
-        'logic_breakdown',
-        'high',
-        0.9,
-        [`Incomplete function definition: ${incompleteMatch[0]}`],
-        'static',
-        this.getLineNumber(code, incompleteMatch.index)
-      ));
-    }
-    
-    return issues;
-  }
-
-  /**
-   * Execute code safely in a controlled environment
-   */
-  private async executeCodeSafely(
-    code: string,
-    language: string,
-    options: DetectionOptions
-  ): Promise<ExecutionResult> {
-    // This is a placeholder for the actual execution sandbox
-    // In a real implementation, this would use a secure container
-    
-    return {
-      success: false,
-      output: '',
-      stderr: 'Execution sandbox not yet implemented',
-      errors: [],
-      resourceUsage: {
-        memoryMB: 0,
-        executionTimeMs: 0,
-        cpuUsage: 0,
-      },
-      securityFlags: [],
-      timedOut: false,
-    };
-  }
-
-  /**
-   * Analyze execution result for hallucinations
-   */
-  private async analyzeExecutionResult(
-    executionResult: ExecutionResult,
-    code: string
-  ): Promise<HallucinationCategory[]> {
-    const categories: HallucinationCategory[] = [];
-    
-    // Analyze execution errors
-    for (const error of executionResult.errors) {
-      const mapping = ERROR_CATEGORY_MAP[error.type];
-      if (mapping) {
-        categories.push(this.createHallucinationCategory(
-          mapping.type,
-          mapping.subtype,
-          'high',
-          0.95,
-          [`Execution error: ${error.message}`],
-          'execution',
-          error.lineNumber
-        ));
-      }
-    }
-    
-    // Analyze resource usage
-    if (executionResult.resourceUsage.memoryMB > 100) {
-      categories.push(this.createHallucinationCategory(
-        'resource',
-        'physical_constraint',
-        'medium',
-        0.8,
-        [`High memory usage: ${executionResult.resourceUsage.memoryMB}MB`],
-        'execution'
-      ));
-    }
-    
-    if (executionResult.timedOut) {
-      categories.push(this.createHallucinationCategory(
-        'resource',
-        'computational_boundary',
-        'high',
-        0.9,
-        ['Code execution timed out'],
-        'execution'
-      ));
-    }
-    
-    return categories;
-  }
-
-  /**
-   * Helper method to create hallucination category
-   */
-  private createHallucinationCategory(
-    type: HallucinationType,
-    subtype: HallucinationSubtype,
-    severity: 'low' | 'medium' | 'high' | 'critical',
-    confidence: number,
-    evidence: string[],
-    detectionMethod: 'static' | 'execution' | 'pattern' | 'statistical',
-    lineNumber?: number
-  ): HallucinationCategory {
-    return {
-      type,
-      subtype,
-      severity,
-      confidence,
-      evidence,
-      detectionMethod,
-      businessImpact: DEFAULT_BUSINESS_IMPACT[type],
-      lineNumbers: lineNumber ? [lineNumber] : undefined,
-    };
-  }
-
-  /**
-   * Utility methods
-   */
   private validateInput(code: string, language: string): void {
     if (!code || code.trim().length === 0) {
       throw new Error('Code cannot be empty');
     }
-    
-    if (language !== 'python') {
-      throw new Error(`Language '${language}' not yet supported`);
+
+    if (code.length > 100000) {
+      throw new Error('Code is too long (max 100KB)');
+    }
+
+    const supportedLanguages = ['python', 'javascript', 'typescript'];
+    if (!supportedLanguages.includes(language.toLowerCase())) {
+      console.warn(`Language '${language}' not fully supported. Using generic analysis.`);
     }
   }
 
-  private isExecutionSafe(code: string): boolean {
-    // Basic safety checks
-    const dangerousPatterns = [
-      /import\s+os/,
-      /import\s+subprocess/,
-      /import\s+sys/,
-      /exec\s*\(/,
-      /eval\s*\(/,
-      /__import__/,
-    ];
-    
-    return !dangerousPatterns.some(pattern => pattern.test(code));
+  private mapExecutionErrorToCategory(error: any): HallucinationCategory | null {
+    const errorTypeMap: Record<string, {
+      type: 'mapping' | 'naming' | 'resource' | 'logic';
+      subtype: string;
+      severity: 'low' | 'medium' | 'high' | 'critical';
+    }> = {
+      'TypeError': { type: 'mapping', subtype: 'data_compliance', severity: 'high' },
+      'IndexError': { type: 'mapping', subtype: 'structure_access', severity: 'medium' },
+      'KeyError': { type: 'mapping', subtype: 'structure_access', severity: 'medium' },
+      'NameError': { type: 'naming', subtype: 'identity', severity: 'high' },
+      'AttributeError': { type: 'naming', subtype: 'identity', severity: 'medium' },
+      'ImportError': { type: 'naming', subtype: 'external_source', severity: 'critical' },
+      'MemoryError': { type: 'resource', subtype: 'physical_constraint', severity: 'critical' },
+      'RecursionError': { type: 'resource', subtype: 'computational_boundary', severity: 'high' },
+      'ZeroDivisionError': { type: 'logic', subtype: 'logic_deviation', severity: 'high' },
+    };
+
+    const mapping = errorTypeMap[error.type];
+    if (!mapping) return null;
+
+    return {
+      type: mapping.type,
+      subtype: mapping.subtype as any,
+      severity: mapping.severity,
+      confidence: 0.9,
+      description: `Runtime ${error.type}: ${error.message}`,
+      evidence: [{
+        type: 'execution_error',
+        content: error.message,
+        lineNumber: error.lineNumber,
+        confidence: 1.0,
+      }],
+      suggestedFix: this.getErrorSpecificFix(error.type),
+      businessImpact: {
+        estimatedDevTimeWasted: mapping.severity === 'critical' ? 4.0 : 
+                               mapping.severity === 'high' ? 2.5 : 1.5,
+        costMultiplier: mapping.severity === 'critical' ? 2.0 : 1.3,
+        qualityImpact: mapping.severity === 'critical' ? 50 : 
+                      mapping.severity === 'high' ? 35 : 20,
+        costOfHallucinations: (mapping.severity === 'critical' ? 4.0 : 
+                              mapping.severity === 'high' ? 2.5 : 1.5) * 100,
+      },
+    };
   }
 
-  private filterByConfidence(
-    categories: HallucinationCategory[],
-    threshold: number
-  ): HallucinationCategory[] {
-    return categories.filter(cat => cat.confidence >= threshold);
+  private getErrorSpecificFix(errorType: string): string {
+    const fixes: Record<string, string> = {
+      'TypeError': 'Check data types and add type validation',
+      'IndexError': 'Add bounds checking before array access',
+      'KeyError': 'Use .get() method or verify key existence',
+      'NameError': 'Define variable before use',
+      'AttributeError': 'Verify object has the required attribute',
+      'ImportError': 'Install required package or fix import path',
+      'MemoryError': 'Optimize memory usage',
+      'RecursionError': 'Add base case or use iteration',
+      'ZeroDivisionError': 'Add zero division check',
+    };
+
+    return fixes[errorType] || 'Review and fix the error';
   }
 
-  private calculateHallucinationRate(categories: HallucinationCategory[]): number {
-    if (categories.length === 0) return 0;
-    
-    // Weight by severity and confidence
-    const totalWeight = categories.reduce((sum, cat) => {
-      const severityWeight = { low: 1, medium: 2, high: 3, critical: 4 }[cat.severity];
-      return sum + (severityWeight * cat.confidence);
-    }, 0);
-    
-    const maxPossibleWeight = categories.length * 4; // All critical with 1.0 confidence
-    return Math.min(totalWeight / maxPossibleWeight, 1.0);
+  private checkOutputConsistency(actual: string, expected: any): { confidence: number } {
+    // Simple consistency check - can be enhanced with more sophisticated comparison
+    const actualStr = actual.toString().trim();
+    const expectedStr = expected.toString().trim();
+
+    if (actualStr === expectedStr) {
+      return { confidence: 1.0 };
+    }
+
+    // Check for partial matches
+    const similarity = this.calculateStringSimilarity(actualStr, expectedStr);
+    return { confidence: similarity };
   }
 
-  private calculateQualityImpact(categories: HallucinationCategory[]): number {
-    return categories.reduce((sum, cat) => sum + cat.businessImpact.qualityImpact, 0);
+  private calculateStringSimilarity(str1: string, str2: string): number {
+    // Simple Levenshtein distance-based similarity
+    const longer = str1.length > str2.length ? str1 : str2;
+    const shorter = str1.length > str2.length ? str2 : str1;
+
+    if (longer.length === 0) return 1.0;
+
+    const distance = this.levenshteinDistance(longer, shorter);
+    return (longer.length - distance) / longer.length;
   }
 
-  private generateRecommendations(
-    categories: HallucinationCategory[],
-    context?: CodeContext
-  ): Recommendation[] {
-    const recommendations: Recommendation[] = [];
-    const categoryGroups = this.groupByCategory(categories);
+  private levenshteinDistance(str1: string, str2: string): number {
+    const matrix = Array(str2.length + 1).fill(null).map(() => Array(str1.length + 1).fill(null));
+
+    for (let i = 0; i <= str1.length; i++) matrix[0][i] = i;
+    for (let j = 0; j <= str2.length; j++) matrix[j][0] = j;
+
+    for (let j = 1; j <= str2.length; j++) {
+      for (let i = 1; i <= str1.length; i++) {
+        const indicator = str1[i - 1] === str2[j - 1] ? 0 : 1;
+        matrix[j][i] = Math.min(
+          matrix[j][i - 1] + 1,
+          matrix[j - 1][i] + 1,
+          matrix[j - 1][i - 1] + indicator
+        );
+      }
+    }
+
+    return matrix[str2.length][str1.length];
+  }
+
+  private analyzeHistoricalPatterns(code: string): Array<{
+    categoryType: string;
+    reliability: number;
+  }> {
+    // Simplified historical analysis - in production, this would use a database
+    const patterns: Array<{ categoryType: string; reliability: number }> = [];
     
-    for (const [type, cats] of Object.entries(categoryGroups)) {
-      recommendations.push(this.createRecommendationForCategory(type as HallucinationType, cats));
+    // Analyze code characteristics and match with historical patterns
+    const codeFeatures = this.extractCodeFeatures(code);
+    
+    // Mock historical pattern matching
+    if (codeFeatures.hasLoops && codeFeatures.hasArrayAccess) {
+      patterns.push({ categoryType: 'mapping', reliability: 0.85 });
     }
     
-    return recommendations;
+    if (codeFeatures.hasImports && codeFeatures.hasExternalCalls) {
+      patterns.push({ categoryType: 'naming', reliability: 0.75 });
+    }
+
+    return patterns;
   }
 
-  private groupByCategory(categories: HallucinationCategory[]): Record<string, HallucinationCategory[]> {
-    return categories.reduce((groups, cat) => {
-      if (!groups[cat.type]) groups[cat.type] = [];
-      groups[cat.type].push(cat);
+  private extractCodeFeatures(code: string): {
+    hasLoops: boolean;
+    hasArrayAccess: boolean;
+    hasImports: boolean;
+    hasExternalCalls: boolean;
+  } {
+    return {
+      hasLoops: /for\s+|while\s+/.test(code),
+      hasArrayAccess: /\[\s*\w+\s*\]/.test(code),
+      hasImports: /import\s+|from\s+/.test(code),
+      hasExternalCalls: /\w+\.\w+\s*\(/.test(code),
+    };
+  }
+
+  private groupCategoriesByType(categories: HallucinationCategory[]): Record<string, HallucinationCategory[]> {
+    return categories.reduce((groups, category) => {
+      const type = category.type;
+      if (!groups[type]) groups[type] = [];
+      groups[type].push(category);
       return groups;
     }, {} as Record<string, HallucinationCategory[]>);
   }
 
-  private createRecommendationForCategory(
-    type: HallucinationType,
-    categories: HallucinationCategory[]
-  ): Recommendation {
+  private generateTypeSpecificRecommendation(
+    type: 'mapping' | 'naming' | 'resource' | 'logic',
+    categories: HallucinationCategory[],
+    context?: any
+  ): Recommendation | null {
     const recommendations = {
       mapping: {
-        title: 'Fix Data Type and Structure Issues',
-        description: 'Address type mismatches and structure access problems',
+        title: 'Data Type and Structure Issues',
+        description: 'Code contains potential data mapping problems',
         actionItems: [
-          'Add type checking before operations',
-          'Validate array indices and dictionary keys',
-          'Use proper type conversion methods',
+          'Add type checking and validation',
+          'Verify data structure assumptions',
+          'Test with edge cases and different data types',
         ],
-        expectedImpact: 'Reduce runtime errors by 60-80%',
       },
       naming: {
-        title: 'Resolve Variable and Import Issues',
-        description: 'Fix undefined variables and missing imports',
+        title: 'Identifier and Reference Issues',
+        description: 'Code contains potential naming and reference problems',
         actionItems: [
-          'Define all variables before use',
-          'Check import statements for typos',
-          'Verify module availability',
+          'Verify all variables and functions are defined',
+          'Check import statements and module availability',
+          'Review scope and naming conventions',
         ],
-        expectedImpact: 'Eliminate name-related errors',
       },
       resource: {
-        title: 'Optimize Resource Usage',
-        description: 'Address memory and computational constraints',
+        title: 'Resource and Performance Issues',
+        description: 'Code may have resource consumption problems',
         actionItems: [
-          'Add proper base cases to recursive functions',
-          'Limit data structure sizes',
-          'Implement timeout mechanisms',
+          'Add resource limits and monitoring',
+          'Optimize memory and CPU usage',
+          'Implement proper error handling for resource constraints',
         ],
-        expectedImpact: 'Prevent resource exhaustion issues',
       },
       logic: {
-        title: 'Improve Code Logic',
-        description: 'Fix logical inconsistencies and incomplete code',
+        title: 'Logic and Flow Issues',
+        description: 'Code contains potential logical inconsistencies',
         actionItems: [
-          'Review conditional statements',
-          'Complete function implementations',
-          'Remove contradictory logic',
+          'Review algorithm logic and flow',
+          'Add proper termination conditions',
+          'Test with various input scenarios',
         ],
-        expectedImpact: 'Improve code correctness and reliability',
       },
     };
 
-    const rec = recommendations[type];
+    const config = recommendations[type];
+    if (!config) return null;
+
+    const highSeverityCount = categories.filter(c => c.severity === 'high' || c.severity === 'critical').length;
+    const priority = highSeverityCount > 0 ? 'high' : 'medium';
+
     return {
-      category: type,
-      priority: categories.some(c => c.severity === 'critical') ? 'high' : 'medium',
-      title: rec.title,
-      description: rec.description,
-      actionItems: rec.actionItems,
-      expectedImpact: rec.expectedImpact,
+      priority,
+      title: config.title,
+      description: config.description,
+      actionItems: config.actionItems,
+      expectedImpact: `Resolve ${categories.length} ${type} issue(s)`,
+      estimatedTimeToFix: this.estimateFixTime(categories),
     };
   }
 
-  private compileResult(
-    categories: HallucinationCategory[],
-    overallRate: number,
-    qualityImpact: number,
-    recommendations: Recommendation[],
-    executionResult: ExecutionResult | undefined,
+  private estimateFixTime(categories: HallucinationCategory[]): string {
+    const totalTime = categories.reduce((sum, category) => {
+      return sum + category.businessImpact.estimatedDevTimeWasted;
+    }, 0);
+
+    if (totalTime < 1) return '15-30 minutes';
+    if (totalTime < 2) return '30-60 minutes';
+    if (totalTime < 4) return '1-2 hours';
+    if (totalTime < 8) return '2-4 hours';
+    return '4+ hours';
+  }
+
+  private generateCodeHash(code: string): string {
+    // Simple hash function for code identification
+    let hash = 0;
+    for (let i = 0; i < code.length; i++) {
+      const char = code.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return hash.toString(36);
+  }
+
+  private createErrorResult(
+    error: any,
     code: string,
-    language: string
+    language: string,
+    detectionTime: number
   ): CodeHaluResult {
-    const analysisTime = Date.now() - this.startTime;
-    
-    const summary = {
-      totalHallucinations: categories.length,
-      criticalCount: categories.filter(c => c.severity === 'critical').length,
-      highSeverityCount: categories.filter(c => c.severity === 'high').length,
-      mediumSeverityCount: categories.filter(c => c.severity === 'medium').length,
-      lowSeverityCount: categories.filter(c => c.severity === 'low').length,
-      mostCommonCategory: this.getMostCommonCategory(categories),
-      overallRisk: this.calculateOverallRisk(categories),
-    };
-
     return {
-      overallHallucinationRate: overallRate,
-      categories,
-      executionResult,
-      codeQualityImpact: qualityImpact,
-      recommendations,
-      detectionMetadata: {
-        analysisTimeMs: analysisTime,
-        detectionVersion: this.detectionVersion,
-        language,
+      overallHallucinationRate: 1.0, // Assume high hallucination rate on error
+      categories: [{
+        type: 'logic',
+        subtype: 'logic_breakdown',
+        severity: 'critical',
+        confidence: 0.9,
+        description: 'Detection failed due to critical error',
+        evidence: [{
+          type: 'system_error',
+          content: error instanceof Error ? error.message : 'Unknown error',
+          confidence: 1.0,
+        }],
+        suggestedFix: 'Review code structure and syntax',
+        businessImpact: {
+          estimatedDevTimeWasted: 4.0,
+          costMultiplier: 2.0,
+          qualityImpact: 50,
+          costOfHallucinations: 400.0,
+        },
+      }],
+      recommendations: [{
+        priority: 'high',
+        title: 'Critical Analysis Failure',
+        description: 'Code analysis failed - manual review required',
+        actionItems: [
+          'Check code syntax and structure',
+          'Verify code is complete and valid',
+          'Consider breaking down complex code',
+        ],
+        expectedImpact: 'Enable proper analysis and detection',
+        estimatedTimeToFix: '1-2 hours',
+      }],
+      analysisMetadata: {
+        detectionTimeMs: detectionTime,
         codeLength: code.length,
-        timestamp: new Date().toISOString(),
-        executionVerified: !!executionResult,
+        language,
+        detectionMethods: ['error'],
+        analysisVersion: '1.0.0',
       },
-      hasCriticalIssues: summary.criticalCount > 0,
-      summary,
+      businessImpact: {
+        estimatedDevTimeWasted: 4.0,
+        costMultiplier: 2.0,
+        qualityImpact: 50,
+        costOfHallucinations: 800.0, // 4 hours * $100/hour * 2.0 multiplier
+      },
     };
   }
+}
 
-  private createErrorResult(error: any, code: string, language: string): CodeHaluResult {
-    return {
-      overallHallucinationRate: 0,
-      categories: [],
-      codeQualityImpact: 0,
-      recommendations: [],
-      detectionMetadata: {
-        analysisTimeMs: Date.now() - this.startTime,
-        detectionVersion: this.detectionVersion,
-        language,
-        codeLength: code.length,
-        timestamp: new Date().toISOString(),
-        executionVerified: false,
-      },
-      hasCriticalIssues: false,
-      summary: {
-        totalHallucinations: 0,
-        criticalCount: 0,
-        highSeverityCount: 0,
-        mediumSeverityCount: 0,
-        lowSeverityCount: 0,
-        mostCommonCategory: null,
-        overallRisk: 'low',
-      },
-    };
-  }
+/**
+ * Factory function to create detector with default configuration
+ */
+export function createCodeHaluDetector(config?: Partial<DetectionConfig>): CodeHaluDetector {
+  return new CodeHaluDetector(config);
+}
 
-  private getMostCommonCategory(categories: HallucinationCategory[]): HallucinationType | null {
-    if (categories.length === 0) return null;
-    
-    const counts = categories.reduce((acc, cat) => {
-      acc[cat.type] = (acc[cat.type] || 0) + 1;
-      return acc;
-    }, {} as Record<HallucinationType, number>);
-    
-    return Object.entries(counts).reduce((a, b) => counts[a[0] as HallucinationType] > counts[b[0] as HallucinationType] ? a : b)[0] as HallucinationType;
+/**
+ * Utility function for quick hallucination detection
+ */
+export async function detectCodeHallucinations(
+  code: string,
+  language: string = 'python',
+  options?: {
+    enableExecution?: boolean;
+    maxExecutionTime?: number;
+    confidenceThreshold?: number;
   }
+): Promise<CodeHaluResult> {
+  const config: Partial<DetectionConfig> = {
+    enableExecutionAnalysis: options?.enableExecution ?? true,
+    maxExecutionTime: options?.maxExecutionTime ?? 5000,
+    confidenceThreshold: options?.confidenceThreshold ?? 0.6,
+  };
 
-  private calculateOverallRisk(categories: HallucinationCategory[]): 'low' | 'medium' | 'high' | 'critical' {
-    if (categories.some(c => c.severity === 'critical')) return 'critical';
-    if (categories.filter(c => c.severity === 'high').length >= 2) return 'high';
-    if (categories.filter(c => c.severity === 'medium').length >= 3) return 'medium';
-    return 'low';
-  }
-
-  /**
-   * Remove duplicate categories based on evidence and line numbers
-   */
-  private deduplicateCategories(categories: HallucinationCategory[]): HallucinationCategory[] {
-    const seen = new Set<string>();
-    const deduplicated: HallucinationCategory[] = [];
-    
-    for (const category of categories) {
-      const key = `${category.type}-${category.subtype}-${category.lineNumbers?.[0] || 0}-${category.evidence[0] || ''}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        deduplicated.push(category);
-      }
-    }
-    
-    return deduplicated;
-  }
-
-  /**
-   * Utility helper methods
-   */
-  private getLineNumber(code: string, index: number): number {
-    return code.substring(0, index).split('\n').length;
-  }
-
-  private findFunctionEnd(code: string, start: number): number {
-    // Simple implementation - find next function or end of file
-    const nextFunc = code.indexOf('\ndef ', start + 1);
-    return nextFunc === -1 ? code.length : nextFunc;
-  }
-
-  private findBlockEnd(code: string, start: number): number {
-    // Simple implementation - find next unindented line
-    const lines = code.substring(start).split('\n');
-    for (let i = 1; i < lines.length; i++) {
-      if (lines[i].trim() && !lines[i].startsWith('    ') && !lines[i].startsWith('\t')) {
-        return start + lines.slice(0, i).join('\n').length;
-      }
-    }
-    return code.length;
-  }
-
-  private isPythonKeywordOrBuiltin(word: string): boolean {
-    const keywords = [
-      'and', 'as', 'assert', 'break', 'class', 'continue', 'def', 'del', 'elif', 'else',
-      'except', 'exec', 'finally', 'for', 'from', 'global', 'if', 'import', 'in', 'is',
-      'lambda', 'not', 'or', 'pass', 'print', 'raise', 'return', 'try', 'while', 'with',
-      'yield', 'True', 'False', 'None', 'len', 'range', 'str', 'int', 'float', 'list',
-      'dict', 'set', 'tuple', 'type', 'isinstance', 'hasattr', 'getattr', 'setattr'
-    ];
-    return keywords.includes(word);
-  }
-
-  private isPotentiallyNonExistentModule(moduleName: string): boolean {
-    // Common modules that should exist
-    const commonModules = [
-      'os', 'sys', 'json', 'math', 'random', 'datetime', 'time', 'collections',
-      'itertools', 'functools', 're', 'urllib', 'http', 'pathlib', 'typing'
-    ];
-    
-    // If it's not a common module and has unusual characteristics, flag it
-    return !commonModules.includes(moduleName) && 
-           (moduleName.length > 15 || /[A-Z]{3,}/.test(moduleName));
-  }
+  const detector = createCodeHaluDetector(config);
+  return await detector.detectHallucinations(code, language);
 }

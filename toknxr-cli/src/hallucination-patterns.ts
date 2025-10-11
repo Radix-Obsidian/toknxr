@@ -1,708 +1,600 @@
 /**
  * Hallucination Pattern Detection
- * Advanced pattern matching for systematic code hallucination detection
- * 
- * Based on CodeHalu research methodology for pattern-based detection
+ * Static analysis patterns for detecting common code hallucinations
  */
 
 import {
   HallucinationCategory,
-  HallucinationType,
-  HallucinationSubtype,
   PatternMatch,
+  Evidence,
   CodeStructure,
-  DEFAULT_BUSINESS_IMPACT,
 } from './types/hallucination-types.js';
 
 /**
- * Pattern detection result
+ * Pattern matching result with confidence and evidence
  */
-export interface PatternDetectionResult {
-  matches: PatternMatch[];
-  categories: HallucinationCategory[];
-  codeStructure: CodeStructure;
+export interface PatternMatchResult {
+  pattern: string;
   confidence: number;
-}
-
-/**
- * Pattern definition for hallucination detection
- */
-export interface HallucinationPattern {
-  id: string;
-  name: string;
-  description: string;
-  category: HallucinationType;
-  subtype: HallucinationSubtype;
+  evidence: Evidence[];
+  lineNumbers: number[];
+  category: 'mapping' | 'naming' | 'resource' | 'logic';
+  subtype: string;
   severity: 'low' | 'medium' | 'high' | 'critical';
-  regex: RegExp;
-  confidence: number;
-  evidenceExtractor: (match: RegExpMatchArray, code: string) => string[];
-  suggestedFix?: string;
-  examples: string[];
 }
 
 /**
- * Advanced pattern matcher for hallucination detection
+ * Code structure analysis result
+ */
+export interface CodeStructureAnalysis {
+  functions: string[];
+  classes: string[];
+  imports: string[];
+  variables: string[];
+  complexity: number;
+  linesOfCode: number;
+  hasAsyncCode: boolean;
+  hasErrorHandling: boolean;
+}
+
+/**
+ * Hallucination pattern detection engine
  */
 export class HallucinationPatterns {
-  private patterns: HallucinationPattern[] = [];
+  private static readonly MAPPING_PATTERNS = {
+    // TypeError patterns - incorrect type assumptions
+    typeError: {
+      patterns: [
+        /(\w+)\s*\+\s*(\w+).*#.*(?:string|str).*(?:int|integer|number)/i,
+        /(\w+)\.(\w+)\s*\(.*\).*#.*(?:not callable|has no attribute)/i,
+        /(\w+)\[(\w+)\].*#.*(?:not subscriptable|unhashable)/i,
+        /len\s*\(\s*(\w+)\s*\).*#.*(?:has no len|object of type)/i,
+        /for\s+\w+\s+in\s+(\w+).*#.*(?:not iterable|object is not iterable)/i,
+      ],
+      severity: 'high' as const,
+      subtype: 'data_compliance',
+    },
 
-  constructor() {
-    this.initializePatterns();
-  }
+    // IndexError patterns - incorrect array/list access
+    indexError: {
+      patterns: [
+        /(\w+)\[(\d+)\].*#.*(?:index out of range|list index)/i,
+        /(\w+)\[(\w+)\].*#.*(?:index out of range|string index)/i,
+        /(\w+)\[(-\d+)\].*#.*(?:index out of range)/i,
+        /(\w+)\.pop\s*\(\s*(\d+)\s*\).*#.*(?:index out of range)/i,
+      ],
+      severity: 'medium' as const,
+      subtype: 'structure_access',
+    },
+
+    // KeyError patterns - incorrect dictionary access
+    keyError: {
+      patterns: [
+        /(\w+)\[['"](\w+)['"]\].*#.*(?:key error|keyerror)/i,
+        /(\w+)\.get\s*\(\s*['"](\w+)['"]\s*\).*#.*(?:none|missing)/i,
+        /(\w+)\[(\w+)\].*#.*(?:key error|keyerror)/i,
+        /del\s+(\w+)\[['"](\w+)['"]\].*#.*(?:key error)/i,
+      ],
+      severity: 'medium' as const,
+      subtype: 'structure_access',
+    },
+  };
+
+  private static readonly NAMING_PATTERNS = {
+    // NameError patterns - undefined variables/functions
+    nameError: {
+      patterns: [
+        /(\w+)\s*=.*#.*(?:name.*not defined|undefined)/i,
+        /(\w+)\s*\(.*\).*#.*(?:name.*not defined|undefined)/i,
+        /print\s*\(\s*(\w+)\s*\).*#.*(?:name.*not defined)/i,
+        /return\s+(\w+).*#.*(?:name.*not defined)/i,
+        /if\s+(\w+).*#.*(?:name.*not defined)/i,
+      ],
+      severity: 'high' as const,
+      subtype: 'identity',
+    },
+
+    // AttributeError patterns - incorrect method/property access
+    attributeError: {
+      patterns: [
+        /(\w+)\.(\w+).*#.*(?:has no attribute|attribute error)/i,
+        /(\w+)\.(\w+)\s*\(.*\).*#.*(?:has no attribute)/i,
+        /(\w+)\.(\w+)\s*=.*#.*(?:has no attribute)/i,
+        /del\s+(\w+)\.(\w+).*#.*(?:has no attribute)/i,
+      ],
+      severity: 'medium' as const,
+      subtype: 'identity',
+    },
+
+    // ImportError patterns - incorrect module imports
+    importError: {
+      patterns: [
+        /import\s+(\w+).*#.*(?:no module named|import error)/i,
+        /from\s+(\w+)\s+import\s+(\w+).*#.*(?:cannot import|import error)/i,
+        /import\s+(\w+)\.(\w+).*#.*(?:no module named)/i,
+        /__import__\s*\(\s*['"](\w+)['"]\s*\).*#.*(?:no module)/i,
+      ],
+      severity: 'critical' as const,
+      subtype: 'external_source',
+    },
+  };
+
+  private static readonly RESOURCE_PATTERNS = {
+    // Memory-related patterns
+    memoryError: {
+      patterns: [
+        /\[\s*\w+\s*for\s+\w+\s+in\s+range\s*\(\s*\d{6,}\s*\)\s*\].*#.*(?:memory|out of memory)/i,
+        /\*\s*\[\s*\d+\s*\]\s*\*\s*\d{4,}.*#.*(?:memory)/i,
+        /(\w+)\s*=\s*\[\s*\]\s*\*\s*\d{6,}.*#.*(?:memory)/i,
+      ],
+      severity: 'high' as const,
+      subtype: 'physical_constraint',
+    },
+
+    // Recursion-related patterns
+    recursionError: {
+      patterns: [
+        /def\s+(\w+)\s*\([^)]*\):\s*[^{]*\1\s*\([^)]*\).*#.*(?:recursion|stack)/i,
+        /(\w+)\s*\([^)]*\).*\1\s*\([^)]*\).*#.*(?:maximum recursion)/i,
+      ],
+      severity: 'critical' as const,
+      subtype: 'computational_boundary',
+    },
+
+    // File/IO patterns
+    ioError: {
+      patterns: [
+        /open\s*\(\s*['"]([^'"]+)['"]\s*\).*#.*(?:no such file|permission denied)/i,
+        /with\s+open\s*\(\s*['"]([^'"]+)['"]\s*\).*#.*(?:file not found)/i,
+        /(\w+)\.read\s*\(\s*\).*#.*(?:closed file|io error)/i,
+      ],
+      severity: 'medium' as const,
+      subtype: 'physical_constraint',
+    },
+  };
+
+  private static readonly LOGIC_PATTERNS = {
+    // Logic deviation patterns
+    logicDeviation: {
+      patterns: [
+        /if\s+(\w+)\s*==\s*(\w+)\s*and\s+\1\s*!=\s*\2.*#.*(?:contradiction|impossible)/i,
+        /while\s+True:\s*[^{]*(?!break).*#.*(?:infinite|endless)/i,
+        /(\w+)\s*=\s*(\w+)\s*\/\s*0.*#.*(?:division by zero)/i,
+        /return\s+(\w+)\s*and\s+not\s+\1.*#.*(?:contradiction)/i,
+      ],
+      severity: 'high' as const,
+      subtype: 'logic_deviation',
+    },
+
+    // Logic breakdown patterns
+    logicBreakdown: {
+      patterns: [
+        /if\s+(\w+):\s*[^{]*else:\s*[^{]*\1.*#.*(?:unreachable|dead code)/i,
+        /(\w+)\s*=\s*None\s*[^{]*\1\.(\w+).*#.*(?:none type|attribute)/i,
+        /assert\s+False.*#.*(?:assertion|always fails)/i,
+      ],
+      severity: 'critical' as const,
+      subtype: 'logic_breakdown',
+    },
+  };
 
   /**
-   * Initialize all hallucination detection patterns
+   * Detect mapping hallucinations (data type and structure issues)
    */
-  private initializePatterns(): void {
-    // Mapping Hallucination Patterns
-    this.patterns.push(...this.getMappingPatterns());
-    
-    // Naming Hallucination Patterns
-    this.patterns.push(...this.getNamingPatterns());
-    
-    // Resource Hallucination Patterns
-    this.patterns.push(...this.getResourcePatterns());
-    
-    // Logic Hallucination Patterns
-    this.patterns.push(...this.getLogicPatterns());
-  }
+  static detectMappingHallucinations(code: string): PatternMatchResult[] {
+    const results: PatternMatchResult[] = [];
+    const lines = code.split('\n');
 
-  /**
-   * Detect all patterns in the given code
-   */
-  detectPatterns(code: string): PatternDetectionResult {
-    const matches: PatternMatch[] = [];
-    const categories: HallucinationCategory[] = [];
-    
-    // Analyze code structure first
-    const codeStructure = this.analyzeCodeStructure(code);
-    
-    // Run pattern detection
-    for (const pattern of this.patterns) {
-      const patternMatches = this.detectPattern(pattern, code);
-      matches.push(...patternMatches);
-      
-      // Convert matches to categories
-      for (const match of patternMatches) {
-        categories.push(this.createCategoryFromMatch(match, pattern));
+    // Check TypeError patterns
+    for (const [patternName, config] of Object.entries(this.MAPPING_PATTERNS)) {
+      for (const pattern of config.patterns) {
+        lines.forEach((line, index) => {
+          const match = pattern.exec(line);
+          if (match) {
+            const confidence = this.calculatePatternConfidence(match, line, patternName);
+            const evidence = this.extractEvidence(match, line, index + 1);
+
+            results.push({
+              pattern: patternName,
+              confidence,
+              evidence,
+              lineNumbers: [index + 1],
+              category: 'mapping',
+              subtype: config.subtype,
+              severity: config.severity,
+            });
+          }
+        });
       }
     }
-    
-    // Calculate overall confidence
-    const confidence = this.calculateOverallConfidence(matches);
-    
-    return {
-      matches,
-      categories,
-      codeStructure,
-      confidence,
-    };
+
+    return results;
   }
 
   /**
-   * Detect a specific pattern in code
+   * Detect naming hallucinations (identifier and reference issues)
    */
-  private detectPattern(pattern: HallucinationPattern, code: string): PatternMatch[] {
-    const matches: PatternMatch[] = [];
+  static detectNamingHallucinations(code: string): PatternMatchResult[] {
+    const results: PatternMatchResult[] = [];
     const lines = code.split('\n');
-    
-    for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
-      const line = lines[lineIndex];
-      const regex = new RegExp(pattern.regex.source, pattern.regex.flags);
-      let match;
-      
-      while ((match = regex.exec(line)) !== null) {
-        const evidence = pattern.evidenceExtractor(match, code);
-        
-        matches.push({
-          pattern: pattern.id,
-          confidence: pattern.confidence,
-          location: {
-            startLine: lineIndex + 1,
-            endLine: lineIndex + 1,
-            startColumn: match.index,
-            endColumn: match.index + match[0].length,
-          },
-          evidence: evidence.join('; '),
-          suggestedCategory: {
-            type: pattern.category,
-            subtype: pattern.subtype,
-            severity: pattern.severity,
-            confidence: pattern.confidence,
-            evidence,
-            detectionMethod: 'pattern',
-            businessImpact: DEFAULT_BUSINESS_IMPACT[pattern.category],
-            lineNumbers: [lineIndex + 1],
-            suggestedFix: pattern.suggestedFix,
-          },
+
+    for (const [patternName, config] of Object.entries(this.NAMING_PATTERNS)) {
+      for (const pattern of config.patterns) {
+        lines.forEach((line, index) => {
+          const match = pattern.exec(line);
+          if (match) {
+            const confidence = this.calculatePatternConfidence(match, line, patternName);
+            const evidence = this.extractEvidence(match, line, index + 1);
+
+            results.push({
+              pattern: patternName,
+              confidence,
+              evidence,
+              lineNumbers: [index + 1],
+              category: 'naming',
+              subtype: config.subtype,
+              severity: config.severity,
+            });
+          }
         });
-        
-        // Prevent infinite loops
-        if (regex.lastIndex === match.index) {
-          regex.lastIndex++;
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Detect resource hallucinations (memory, file, network issues)
+   */
+  static detectResourceHallucinations(code: string): PatternMatchResult[] {
+    const results: PatternMatchResult[] = [];
+    const lines = code.split('\n');
+
+    for (const [patternName, config] of Object.entries(this.RESOURCE_PATTERNS)) {
+      for (const pattern of config.patterns) {
+        lines.forEach((line, index) => {
+          const match = pattern.exec(line);
+          if (match) {
+            const confidence = this.calculatePatternConfidence(match, line, patternName);
+            const evidence = this.extractEvidence(match, line, index + 1);
+
+            results.push({
+              pattern: patternName,
+              confidence,
+              evidence,
+              lineNumbers: [index + 1],
+              category: 'resource',
+              subtype: config.subtype,
+              severity: config.severity,
+            });
+          }
+        });
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Detect logic hallucinations (logical inconsistencies)
+   */
+  static detectLogicHallucinations(code: string): PatternMatchResult[] {
+    const results: PatternMatchResult[] = [];
+    const lines = code.split('\n');
+
+    for (const [patternName, config] of Object.entries(this.LOGIC_PATTERNS)) {
+      for (const pattern of config.patterns) {
+        lines.forEach((line, index) => {
+          const match = pattern.exec(line);
+          if (match) {
+            const confidence = this.calculatePatternConfidence(match, line, patternName);
+            const evidence = this.extractEvidence(match, line, index + 1);
+
+            results.push({
+              pattern: patternName,
+              confidence,
+              evidence,
+              lineNumbers: [index + 1],
+              category: 'logic',
+              subtype: config.subtype,
+              severity: config.severity,
+            });
+          }
+        });
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Analyze code structure for complexity and patterns
+   */
+  static analyzeCodeStructure(code: string): CodeStructureAnalysis {
+    const lines = code.split('\n');
+    const analysis: CodeStructureAnalysis = {
+      functions: [],
+      classes: [],
+      imports: [],
+      variables: [],
+      complexity: 0,
+      linesOfCode: lines.filter(line => line.trim() && !line.trim().startsWith('#')).length,
+      hasAsyncCode: false,
+      hasErrorHandling: false,
+    };
+
+    // Extract functions
+    const functionPattern = /def\s+(\w+)\s*\(/g;
+    let match;
+    while ((match = functionPattern.exec(code)) !== null) {
+      analysis.functions.push(match[1]);
+    }
+
+    // Extract classes
+    const classPattern = /class\s+(\w+)\s*[:(]/g;
+    while ((match = classPattern.exec(code)) !== null) {
+      analysis.classes.push(match[1]);
+    }
+
+    // Extract imports
+    const importPattern = /(?:import|from)\s+(\w+)/g;
+    while ((match = importPattern.exec(code)) !== null) {
+      analysis.imports.push(match[1]);
+    }
+
+    // Extract variables
+    const variablePattern = /(\w+)\s*=/g;
+    while ((match = variablePattern.exec(code)) !== null) {
+      if (!analysis.variables.includes(match[1])) {
+        analysis.variables.push(match[1]);
+      }
+    }
+
+    // Check for async code
+    analysis.hasAsyncCode = /async\s+def|await\s+/.test(code);
+
+    // Check for error handling
+    analysis.hasErrorHandling = /try:|except|finally:|raise/.test(code);
+
+    // Calculate complexity (simplified cyclomatic complexity)
+    const complexityPatterns = [
+      /if\s+/g,
+      /elif\s+/g,
+      /else:/g,
+      /for\s+/g,
+      /while\s+/g,
+      /except/g,
+      /and\s+/g,
+      /or\s+/g,
+    ];
+
+    analysis.complexity = complexityPatterns.reduce((total, pattern) => {
+      const matches = code.match(pattern);
+      return total + (matches ? matches.length : 0);
+    }, 1); // Base complexity of 1
+
+    return analysis;
+  }
+
+  /**
+   * Extract evidence from pattern match
+   */
+  static extractEvidence(match: RegExpExecArray, line: string, lineNumber: number): Evidence[] {
+    const evidence: Evidence[] = [];
+
+    // Add the matched line as primary evidence
+    evidence.push({
+      type: 'code_line',
+      content: line.trim(),
+      lineNumber,
+      confidence: 0.9,
+    });
+
+    // Add specific match groups as evidence
+    if (match.length > 1) {
+      for (let i = 1; i < match.length; i++) {
+        if (match[i]) {
+          evidence.push({
+            type: 'identifier',
+            content: match[i],
+            lineNumber,
+            confidence: 0.8,
+          });
         }
       }
     }
-    
-    return matches;
-  }
 
-  /**
-   * Get mapping hallucination patterns
-   */
-  private getMappingPatterns(): HallucinationPattern[] {
-    return [
-      {
-        id: 'type_mismatch_string_number',
-        name: 'String-Number Type Mismatch',
-        description: 'Attempting to perform arithmetic operations between strings and numbers',
-        category: 'mapping',
-        subtype: 'data_compliance',
-        severity: 'high',
-        regex: /(\w+|\d+)\s*[\+\-\*\/]\s*['"][^'"]*['"]|['"][^'"]*['"]\s*[\+\-\*\/]\s*(\w+|\d+)/g,
-        confidence: 0.85,
-        evidenceExtractor: (match) => [`Type mismatch detected: ${match[0]}`],
-        suggestedFix: 'Convert types explicitly before operations (e.g., str(number) or int(string))',
-        examples: [
-          'result = 5 + "hello"',
-          'value = "10" * number',
-          'total = count + "items"',
-        ],
-      },
-      {
-        id: 'invalid_method_on_primitive',
-        name: 'Invalid Method Call on Primitive',
-        description: 'Calling list/dict methods on numbers or strings',
-        category: 'mapping',
-        subtype: 'data_compliance',
-        severity: 'high',
-        regex: /(\d+|'[^']*'|"[^"]*")\.(append|extend|remove|pop|keys|values|items)\s*\(/g,
-        confidence: 0.90,
-        evidenceExtractor: (match) => [`Invalid method call: ${match[0]}`],
-        suggestedFix: 'Ensure the variable is the correct type before calling methods',
-        examples: [
-          '5.append(item)',
-          '"hello".keys()',
-          '3.14.remove(x)',
-        ],
-      },
-      {
-        id: 'index_out_of_bounds_hardcoded',
-        name: 'Potential Index Out of Bounds',
-        description: 'Hardcoded large indices that may exceed array bounds',
-        category: 'mapping',
-        subtype: 'structure_access',
-        severity: 'medium',
-        regex: /(\w+)\[(\d{2,})\]/g,
-        confidence: 0.70,
-        evidenceExtractor: (match) => [`Potential index out of bounds: ${match[0]} (index ${match[2]})`],
-        suggestedFix: 'Check array length before accessing or use try-catch for index errors',
-        examples: [
-          'arr[100]',
-          'data[999]',
-          'items[50]',
-        ],
-      },
-      {
-        id: 'unchecked_dict_access',
-        name: 'Unchecked Dictionary Key Access',
-        description: 'Accessing dictionary keys without checking existence',
-        category: 'mapping',
-        subtype: 'structure_access',
-        severity: 'medium',
-        regex: /(\w+)\[['"](\w+)['"]\]/g,
-        confidence: 0.75,
-        evidenceExtractor: (match, code) => {
-          const varName = match[1];
-          const keyName = match[2];
-          const hasCheck = code.includes(`'${keyName}' in ${varName}`) || 
-                          code.includes(`"${keyName}" in ${varName}`) ||
-                          code.includes(`${varName}.get('${keyName}'`) ||
-                          code.includes(`${varName}.get("${keyName}"`);
-          return hasCheck ? [] : [`Unchecked dictionary access: ${match[0]}`];
-        },
-        suggestedFix: 'Use dict.get(key, default) or check key existence with "key in dict"',
-        examples: [
-          'data["name"]',
-          'config["port"]',
-          'user["email"]',
-        ],
-      },
-    ];
-  }
-
-  /**
-   * Get naming hallucination patterns
-   */
-  private getNamingPatterns(): HallucinationPattern[] {
-    return [
-      {
-        id: 'undefined_variable_usage',
-        name: 'Undefined Variable Usage',
-        description: 'Using variables that have not been defined',
-        category: 'naming',
-        subtype: 'identity',
-        severity: 'high',
-        regex: /\b([a-zA-Z_][a-zA-Z0-9_]*)\b/g,
-        confidence: 0.80,
-        evidenceExtractor: (match, code) => {
-          const varName = match[1];
-          
-          // Skip Python keywords and builtins
-          const keywords = [
-            'and', 'as', 'assert', 'break', 'class', 'continue', 'def', 'del', 'elif', 'else',
-            'except', 'exec', 'finally', 'for', 'from', 'global', 'if', 'import', 'in', 'is',
-            'lambda', 'not', 'or', 'pass', 'print', 'raise', 'return', 'try', 'while', 'with',
-            'yield', 'True', 'False', 'None', 'len', 'range', 'str', 'int', 'float', 'list',
-            'dict', 'set', 'tuple', 'type', 'isinstance', 'hasattr', 'getattr', 'setattr'
-          ];
-          
-          if (keywords.includes(varName)) return [];
-          
-          // Check if variable is defined before this usage
-          const lines = code.split('\n');
-          const currentLineIndex = code.substring(0, match.index).split('\n').length - 1;
-          
-          for (let i = 0; i < currentLineIndex; i++) {
-            if (lines[i].includes(`${varName} =`) || lines[i].includes(`def ${varName}(`)) {
-              return [];
-            }
-          }
-          
-          return [`Variable '${varName}' used before definition`];
-        },
-        suggestedFix: 'Define the variable before using it',
-        examples: [
-          'print(undefined_var)',
-          'result = unknown_function()',
-          'value = missing_variable + 1',
-        ],
-      },
-      {
-        id: 'nonexistent_module_import',
-        name: 'Non-existent Module Import',
-        description: 'Importing modules that likely do not exist',
-        category: 'naming',
-        subtype: 'external_source',
-        severity: 'high',
-        regex: /^(?:from\s+(\w+(?:\.\w+)*)\s+)?import\s+(\w+(?:\s*,\s*\w+)*)/gm,
-        confidence: 0.85,
-        evidenceExtractor: (match) => {
-          const moduleName = match[1] || match[2].split(',')[0].trim();
-          
-          // Common Python modules that should exist
-          const commonModules = [
-            'os', 'sys', 'json', 'math', 'random', 'datetime', 'time', 'collections',
-            'itertools', 'functools', 're', 'urllib', 'http', 'pathlib', 'typing',
-            'asyncio', 'threading', 'multiprocessing', 'subprocess', 'shutil',
-            'pickle', 'csv', 'xml', 'html', 'email', 'base64', 'hashlib', 'hmac',
-            'sqlite3', 'logging', 'unittest', 'argparse', 'configparser'
-          ];
-          
-          // Check for suspicious characteristics
-          const isSuspicious = !commonModules.includes(moduleName) && (
-            moduleName.length > 15 || // Very long names
-            /[A-Z]{3,}/.test(moduleName) || // Multiple consecutive capitals
-            /\d{3,}/.test(moduleName) || // Multiple consecutive numbers
-            /[^a-zA-Z0-9_]/.test(moduleName) // Invalid characters
-          );
-          
-          return isSuspicious ? [`Potentially non-existent module: ${moduleName}`] : [];
-        },
-        suggestedFix: 'Verify the module exists and is properly installed',
-        examples: [
-          'import nonexistentmoduleverylongname',
-          'from INVALIDMODULE import something',
-          'import module123456',
-        ],
-      },
-      {
-        id: 'attribute_on_none',
-        name: 'Attribute Access on None',
-        description: 'Accessing attributes on variables that might be None',
-        category: 'naming',
-        subtype: 'identity',
-        severity: 'medium',
-        regex: /(\w+)\.(\w+)/g,
-        confidence: 0.60,
-        evidenceExtractor: (match, code) => {
-          const varName = match[1];
-          const attrName = match[2];
-          
-          // Check if variable is explicitly set to None
-          if (code.includes(`${varName} = None`)) {
-            return [`Attribute access on potentially None variable: ${match[0]}`];
-          }
-          
-          return [];
-        },
-        suggestedFix: 'Check if variable is not None before accessing attributes',
-        examples: [
-          'result.value  # where result = None',
-          'data.items()  # where data might be None',
-        ],
-      },
-    ];
-  }
-
-  /**
-   * Get resource hallucination patterns
-   */
-  private getResourcePatterns(): HallucinationPattern[] {
-    return [
-      {
-        id: 'infinite_loop_while_true',
-        name: 'Infinite Loop - While True',
-        description: 'While True loops without break conditions',
-        category: 'resource',
-        subtype: 'computational_boundary',
-        severity: 'critical',
-        regex: /while\s+True\s*:/g,
+    // Add context if there's a comment indicating the issue
+    const commentMatch = line.match(/#\s*(.+)$/);
+    if (commentMatch) {
+      evidence.push({
+        type: 'error_message',
+        content: commentMatch[1].trim(),
+        lineNumber,
         confidence: 0.95,
-        evidenceExtractor: (match, code) => {
-          const matchIndex = match.index!;
-          const afterMatch = code.substring(matchIndex);
-          const loopEnd = this.findBlockEnd(afterMatch);
-          const loopBody = afterMatch.substring(0, loopEnd);
-          
-          const hasBreak = loopBody.includes('break') || loopBody.includes('return');
-          return hasBreak ? [] : ['Potential infinite loop: while True without break'];
-        },
-        suggestedFix: 'Add a break condition or use a finite loop',
-        examples: [
-          'while True:\n    print("forever")',
-          'while True:\n    process_data()',
-        ],
-      },
-      {
-        id: 'recursive_without_base_case',
-        name: 'Recursion Without Base Case',
-        description: 'Recursive functions that may lack proper base cases',
-        category: 'resource',
-        subtype: 'physical_constraint',
-        severity: 'critical',
-        regex: /def\s+(\w+)\s*\([^)]*\):/g,
-        confidence: 0.85,
-        evidenceExtractor: (match, code) => {
-          const funcName = match[1];
-          const funcStart = match.index!;
-          const funcEnd = this.findFunctionEnd(code, funcStart);
-          const funcBody = code.substring(funcStart, funcEnd);
-          
-          // Check if function calls itself
-          const hasRecursion = funcBody.includes(`${funcName}(`);
-          if (!hasRecursion) return [];
-          
-          // Check for base case indicators
-          const hasBaseCase = funcBody.includes('return') && 
-                             (funcBody.includes('if') || funcBody.includes('elif'));
-          
-          return hasBaseCase ? [] : [`Recursive function '${funcName}' may lack proper base case`];
-        },
-        suggestedFix: 'Add a base case condition to prevent infinite recursion',
-        examples: [
-          'def factorial(n):\n    return n * factorial(n-1)',
-          'def fibonacci(n):\n    return fibonacci(n-1) + fibonacci(n-2)',
-        ],
-      },
-      {
-        id: 'large_range_operation',
-        name: 'Large Range Operation',
-        description: 'Range operations with very large numbers',
-        category: 'resource',
-        subtype: 'computational_boundary',
-        severity: 'high',
-        regex: /range\s*\(\s*(\d+)\s*\)/g,
-        confidence: 0.80,
-        evidenceExtractor: (match) => {
-          const rangeSize = parseInt(match[1]);
-          return rangeSize > 1000000 ? [`Large range operation: range(${rangeSize})`] : [];
-        },
-        suggestedFix: 'Consider using generators or processing data in chunks',
-        examples: [
-          'for i in range(10000000):',
-          'list(range(5000000))',
-        ],
-      },
-      {
-        id: 'memory_intensive_operation',
-        name: 'Memory Intensive Operation',
-        description: 'Operations that may consume excessive memory',
-        category: 'resource',
-        subtype: 'physical_constraint',
-        severity: 'medium',
-        regex: /\[[^\]]{200,}\]|\{[^}]{200,}\}/g,
-        confidence: 0.70,
-        evidenceExtractor: (match) => [`Large data structure detected: ${match[0].substring(0, 50)}...`],
-        suggestedFix: 'Consider using generators or loading data incrementally',
-        examples: [
-          '[1, 2, 3, ...] # very long list',
-          '{"key1": "value1", ...} # very large dict',
-        ],
-      },
-    ];
-  }
-
-  /**
-   * Get logic hallucination patterns
-   */
-  private getLogicPatterns(): HallucinationPattern[] {
-    return [
-      {
-        id: 'contradictory_condition',
-        name: 'Contradictory Condition',
-        description: 'Logical conditions that are always false or contradictory',
-        category: 'logic',
-        subtype: 'logic_deviation',
-        severity: 'high',
-        regex: /if\s+([^:]+):/g,
-        confidence: 0.90,
-        evidenceExtractor: (match) => {
-          const condition = match[1].trim();
-          
-          // Check for always false conditions
-          if (condition.includes('False') || condition === '0 == 1' || condition === '1 == 0') {
-            return [`Always false condition: ${condition}`];
-          }
-          
-          // Check for contradictory comparisons
-          const contradictoryPattern = /(\w+)\s*==\s*(\w+)\s+and\s+\1\s*!=\s*\2/;
-          if (contradictoryPattern.test(condition)) {
-            return [`Contradictory condition: ${condition}`];
-          }
-          
-          return [];
-        },
-        suggestedFix: 'Review the logical condition for correctness',
-        examples: [
-          'if False:',
-          'if x == y and x != y:',
-          'if 0 == 1:',
-        ],
-      },
-      {
-        id: 'repeated_lines',
-        name: 'Repeated Code Lines',
-        description: 'Identical lines repeated consecutively (stuttering)',
-        category: 'logic',
-        subtype: 'logic_breakdown',
-        severity: 'medium',
-        regex: /^(.{10,})$/gm,
-        confidence: 0.80,
-        evidenceExtractor: (match, code) => {
-          const line = match[1].trim();
-          const lines = code.split('\n').map(l => l.trim());
-          const lineIndex = lines.indexOf(line);
-          
-          if (lineIndex >= 0 && lineIndex < lines.length - 1) {
-            const nextLine = lines[lineIndex + 1];
-            if (line === nextLine && line.length > 10) {
-              return [`Repeated line detected: ${line}`];
-            }
-          }
-          
-          return [];
-        },
-        suggestedFix: 'Remove duplicate lines or use loops if repetition is intentional',
-        examples: [
-          'print("Hello")\nprint("Hello")',
-          'x = 5\nx = 5',
-        ],
-      },
-      {
-        id: 'incomplete_function',
-        name: 'Incomplete Function Definition',
-        description: 'Function definitions without body or implementation',
-        category: 'logic',
-        subtype: 'logic_breakdown',
-        severity: 'high',
-        regex: /def\s+\w+\s*\([^)]*\):\s*$/gm,
-        confidence: 0.95,
-        evidenceExtractor: (match) => [`Incomplete function definition: ${match[0].trim()}`],
-        suggestedFix: 'Complete the function implementation or add pass statement',
-        examples: [
-          'def my_function():',
-          'def process_data(x, y):',
-        ],
-      },
-      {
-        id: 'unreachable_code',
-        name: 'Unreachable Code',
-        description: 'Code that appears after return statements',
-        category: 'logic',
-        subtype: 'logic_deviation',
-        severity: 'medium',
-        regex: /return\s+[^;\n]*\n\s*([^#\n\s][^\n]*)/g,
-        confidence: 0.75,
-        evidenceExtractor: (match) => [`Unreachable code after return: ${match[1].trim()}`],
-        suggestedFix: 'Remove unreachable code or restructure the logic',
-        examples: [
-          'return result\nprint("This will never execute")',
-          'return True\nx = 5',
-        ],
-      },
-    ];
-  }
-
-  /**
-   * Analyze code structure for context
-   */
-  private analyzeCodeStructure(code: string): CodeStructure {
-    const functions: string[] = [];
-    const classes: string[] = [];
-    const variables: string[] = [];
-    const imports: string[] = [];
-    
-    let loops = 0;
-    let conditionals = 0;
-    let tryBlocks = 0;
-    
-    const lines = code.split('\n');
-    let nestingDepth = 0;
-    let maxNesting = 0;
-    
-    for (const line of lines) {
-      const trimmed = line.trim();
-      
-      // Count indentation for nesting depth
-      const indent = line.length - line.trimStart().length;
-      const currentDepth = Math.floor(indent / 4); // Assuming 4-space indentation
-      nestingDepth = currentDepth;
-      maxNesting = Math.max(maxNesting, nestingDepth);
-      
-      // Extract functions
-      const funcMatch = trimmed.match(/^def\s+(\w+)/);
-      if (funcMatch) functions.push(funcMatch[1]);
-      
-      // Extract classes
-      const classMatch = trimmed.match(/^class\s+(\w+)/);
-      if (classMatch) classes.push(classMatch[1]);
-      
-      // Extract variables (simple assignment)
-      const varMatch = trimmed.match(/^(\w+)\s*=/);
-      if (varMatch) variables.push(varMatch[1]);
-      
-      // Extract imports
-      const importMatch = trimmed.match(/^(?:from\s+\w+\s+)?import\s+(\w+)/);
-      if (importMatch) imports.push(importMatch[1]);
-      
-      // Count control structures
-      if (/^(for|while)\s/.test(trimmed)) loops++;
-      if (/^(if|elif)\s/.test(trimmed)) conditionals++;
-      if (/^try\s*:/.test(trimmed)) tryBlocks++;
+      });
     }
-    
-    // Calculate cyclomatic complexity (simplified)
-    const cyclomaticComplexity = 1 + conditionals + loops + tryBlocks;
+
+    return evidence;
+  }
+
+  /**
+   * Calculate confidence score for a pattern match
+   */
+  private static calculatePatternConfidence(
+    match: RegExpExecArray,
+    line: string,
+    patternName: string
+  ): number {
+    let confidence = 0.7; // Base confidence
+
+    // Increase confidence if there's an error comment
+    if (line.includes('#') && /error|exception|fail|wrong|issue/i.test(line)) {
+      confidence += 0.2;
+    }
+
+    // Increase confidence for specific error types in comments
+    const errorKeywords = {
+      typeError: /type.*error|cannot.*add|not.*callable/i,
+      indexError: /index.*out.*of.*range|list.*index/i,
+      keyError: /key.*error|key.*not.*found/i,
+      nameError: /name.*not.*defined|undefined.*variable/i,
+      attributeError: /has.*no.*attribute|attribute.*error/i,
+      importError: /no.*module.*named|import.*error/i,
+      memoryError: /memory.*error|out.*of.*memory/i,
+      recursionError: /recursion.*limit|maximum.*recursion/i,
+      ioError: /file.*not.*found|permission.*denied/i,
+    };
+
+    if (errorKeywords[patternName as keyof typeof errorKeywords]?.test(line)) {
+      confidence += 0.15;
+    }
+
+    // Decrease confidence for common variable names that might be false positives
+    const commonNames = ['data', 'result', 'value', 'item', 'temp', 'x', 'y', 'i', 'j'];
+    if (match[1] && commonNames.includes(match[1].toLowerCase())) {
+      confidence -= 0.1;
+    }
+
+    // Ensure confidence is within bounds
+    return Math.max(0.1, Math.min(1.0, confidence));
+  }
+
+  /**
+   * Convert pattern match results to hallucination categories
+   */
+  static convertToHallucinationCategories(results: PatternMatchResult[]): HallucinationCategory[] {
+    return results.map(result => ({
+      type: result.category,
+      subtype: result.subtype as any,
+      severity: result.severity,
+      confidence: result.confidence,
+      description: this.generateDescription(result),
+      evidence: result.evidence,
+      lineNumbers: result.lineNumbers,
+      suggestedFix: this.generateSuggestedFix(result),
+      businessImpact: this.calculateBusinessImpact(result),
+    }));
+  }
+
+  /**
+   * Generate human-readable description for a pattern match
+   */
+  private static generateDescription(result: PatternMatchResult): string {
+    const descriptions = {
+      typeError: 'Potential type mismatch or incorrect type assumption',
+      indexError: 'Array or list index may be out of bounds',
+      keyError: 'Dictionary key may not exist',
+      nameError: 'Variable or function may not be defined',
+      attributeError: 'Object may not have the specified attribute or method',
+      importError: 'Module or package may not be available',
+      memoryError: 'Code may consume excessive memory',
+      recursionError: 'Infinite recursion or stack overflow risk',
+      ioError: 'File or I/O operation may fail',
+      logicDeviation: 'Logical inconsistency or contradiction detected',
+      logicBreakdown: 'Code logic may be fundamentally flawed',
+    };
+
+    return descriptions[result.pattern as keyof typeof descriptions] || 
+           `Potential ${result.category} hallucination detected`;
+  }
+
+  /**
+   * Generate suggested fix for a pattern match
+   */
+  private static generateSuggestedFix(result: PatternMatchResult): string {
+    const fixes = {
+      typeError: 'Verify data types and add type checking or conversion',
+      indexError: 'Add bounds checking before accessing array elements',
+      keyError: 'Use .get() method or check if key exists before access',
+      nameError: 'Define the variable or function before using it',
+      attributeError: 'Verify object type and available methods/attributes',
+      importError: 'Install required package or check import statement',
+      memoryError: 'Optimize data structures or add memory limits',
+      recursionError: 'Add base case or use iterative approach',
+      ioError: 'Add file existence check and error handling',
+      logicDeviation: 'Review and fix logical contradictions',
+      logicBreakdown: 'Restructure the logic flow',
+    };
+
+    return fixes[result.pattern as keyof typeof fixes] || 
+           'Review and test the code thoroughly';
+  }
+
+  /**
+   * Calculate business impact score for a pattern match
+   */
+  private static calculateBusinessImpact(result: PatternMatchResult): {
+    estimatedDevTimeWasted: number;
+    costMultiplier: number;
+    qualityImpact: number;
+    costOfHallucinations: number;
+  } {
+    const severityMultipliers = {
+      low: { time: 0.5, cost: 1.1, quality: 5 },
+      medium: { time: 2.0, cost: 1.3, quality: 15 },
+      high: { time: 4.0, cost: 1.6, quality: 30 },
+      critical: { time: 8.0, cost: 2.0, quality: 50 },
+    };
+
+    const multiplier = severityMultipliers[result.severity];
+    const devTimeWasted = multiplier.time * result.confidence;
     
     return {
-      functions,
-      classes,
-      variables,
-      imports,
-      controlFlow: {
-        loops,
-        conditionals,
-        tryBlocks,
-      },
-      complexity: {
-        cyclomaticComplexity,
-        linesOfCode: lines.length,
-        nestingDepth: maxNesting,
-      },
+      estimatedDevTimeWasted: devTimeWasted,
+      costMultiplier: multiplier.cost,
+      qualityImpact: Math.round(multiplier.quality * result.confidence),
+      costOfHallucinations: devTimeWasted * 100, // $100/hour dev rate
     };
   }
+}
 
-  /**
-   * Create hallucination category from pattern match
-   */
-  private createCategoryFromMatch(
-    match: PatternMatch,
-    pattern: HallucinationPattern
-  ): HallucinationCategory {
-    return {
-      type: pattern.category,
-      subtype: pattern.subtype,
-      severity: pattern.severity,
-      confidence: match.confidence,
-      evidence: [match.evidence],
-      detectionMethod: 'pattern',
-      businessImpact: DEFAULT_BUSINESS_IMPACT[pattern.category],
-      lineNumbers: [match.location.startLine],
-      errorMessage: undefined,
-      suggestedFix: pattern.suggestedFix,
-    };
-  }
+/**
+ * Factory function to create pattern detection results
+ */
+export function detectAllPatterns(code: string): PatternMatchResult[] {
+  const results: PatternMatchResult[] = [];
+  
+  results.push(...HallucinationPatterns.detectMappingHallucinations(code));
+  results.push(...HallucinationPatterns.detectNamingHallucinations(code));
+  results.push(...HallucinationPatterns.detectResourceHallucinations(code));
+  results.push(...HallucinationPatterns.detectLogicHallucinations(code));
+  
+  // Sort by severity and confidence
+  return results.sort((a, b) => {
+    const severityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
+    const severityDiff = severityOrder[b.severity] - severityOrder[a.severity];
+    if (severityDiff !== 0) return severityDiff;
+    return b.confidence - a.confidence;
+  });
+}
 
-  /**
-   * Calculate overall confidence from matches
-   */
-  private calculateOverallConfidence(matches: PatternMatch[]): number {
-    if (matches.length === 0) return 1.0;
-    
-    const totalConfidence = matches.reduce((sum, match) => sum + match.confidence, 0);
-    return totalConfidence / matches.length;
-  }
+/**
+ * Utility function to get pattern statistics
+ */
+export function getPatternStatistics(results: PatternMatchResult[]): {
+  totalPatterns: number;
+  byCategory: Record<string, number>;
+  bySeverity: Record<string, number>;
+  avgConfidence: number;
+} {
+  const stats = {
+    totalPatterns: results.length,
+    byCategory: {} as Record<string, number>,
+    bySeverity: {} as Record<string, number>,
+    avgConfidence: 0,
+  };
 
-  /**
-   * Find the end of a code block
-   */
-  private findBlockEnd(code: string): number {
-    const lines = code.split('\n');
-    let indentLevel = -1;
-    
-    for (let i = 1; i < lines.length; i++) {
-      const line = lines[i];
-      const trimmed = line.trim();
-      
-      if (trimmed === '') continue; // Skip empty lines
-      
-      const currentIndent = line.length - line.trimStart().length;
-      
-      if (indentLevel === -1) {
-        indentLevel = currentIndent;
-      } else if (currentIndent <= indentLevel && trimmed !== '') {
-        return lines.slice(0, i).join('\n').length;
-      }
-    }
-    
-    return code.length;
-  }
+  if (results.length === 0) return stats;
 
-  /**
-   * Find the end of a function definition
-   */
-  private findFunctionEnd(code: string, start: number): number {
-    const afterStart = code.substring(start);
-    const nextFuncMatch = afterStart.search(/\ndef\s+\w+/);
-    const nextClassMatch = afterStart.search(/\nclass\s+\w+/);
-    
-    let end = code.length;
-    if (nextFuncMatch !== -1) end = Math.min(end, start + nextFuncMatch);
-    if (nextClassMatch !== -1) end = Math.min(end, start + nextClassMatch);
-    
-    return end;
-  }
+  // Count by category
+  results.forEach(result => {
+    stats.byCategory[result.category] = (stats.byCategory[result.category] || 0) + 1;
+    stats.bySeverity[result.severity] = (stats.bySeverity[result.severity] || 0) + 1;
+  });
 
-  /**
-   * Get all available patterns
-   */
-  getPatterns(): HallucinationPattern[] {
-    return [...this.patterns];
-  }
+  // Calculate average confidence
+  stats.avgConfidence = results.reduce((sum, result) => sum + result.confidence, 0) / results.length;
 
-  /**
-   * Get patterns by category
-   */
-  getPatternsByCategory(category: HallucinationType): HallucinationPattern[] {
-    return this.patterns.filter(p => p.category === category);
-  }
-
-  /**
-   * Get pattern by ID
-   */
-  getPattern(id: string): HallucinationPattern | undefined {
-    return this.patterns.find(p => p.id === id);
-  }
+  return stats;
 }

@@ -39,7 +39,7 @@ export type HallucinationSeverity = 'low' | 'medium' | 'high' | 'critical';
 /**
  * Detection methods used to identify hallucinations
  */
-export type DetectionMethod = 'static' | 'execution' | 'pattern' | 'statistical';
+export type DetectionMethod = 'static' | 'execution' | 'pattern' | 'statistical' | 'error';
 
 /**
  * Business impact metrics for hallucination assessment
@@ -54,8 +54,25 @@ export interface BusinessImpact {
   /** Quality impact on 0-100 scale */
   qualityImpact: number;
   
-  /** Estimated monetary cost in USD */
-  estimatedCostUSD?: number;
+  /** Cost of hallucinations in USD */
+  costOfHallucinations: number;
+}
+
+/**
+ * Evidence supporting hallucination detection
+ */
+export interface Evidence {
+  /** Type of evidence */
+  type: string;
+  
+  /** Evidence content */
+  content: string;
+  
+  /** Line number if applicable */
+  lineNumber?: number;
+  
+  /** Confidence in this evidence */
+  confidence: number;
 }
 
 /**
@@ -74,14 +91,11 @@ export interface HallucinationCategory {
   /** Confidence score (0.0 - 1.0) in the detection */
   confidence: number;
   
+  /** Human-readable description */
+  description: string;
+  
   /** Evidence supporting this hallucination detection */
-  evidence: string[];
-  
-  /** Method used to detect this hallucination */
-  detectionMethod: DetectionMethod;
-  
-  /** Business impact assessment */
-  businessImpact: BusinessImpact;
+  evidence: Evidence[];
   
   /** Line numbers where hallucination was detected (if applicable) */
   lineNumbers?: number[];
@@ -91,35 +105,67 @@ export interface HallucinationCategory {
   
   /** Suggested fix or mitigation strategy */
   suggestedFix?: string;
+  
+  /** Business impact assessment */
+  businessImpact: BusinessImpact;
 }
 
 /**
- * Code execution result from sandbox environment
+ * Execution result from code verification
  */
 export interface ExecutionResult {
-  /** Whether code executed successfully */
   success: boolean;
-  
-  /** Standard output from execution */
   output?: string;
-  
-  /** Standard error output */
   stderr?: string;
-  
-  /** Execution errors encountered */
   errors: ExecutionError[];
-  
-  /** Resource usage during execution */
   resourceUsage: ResourceUsage;
-  
-  /** Security flags raised during execution */
   securityFlags: string[];
-  
-  /** Exit code from execution */
   exitCode?: number;
-  
-  /** Whether execution timed out */
   timedOut: boolean;
+}
+
+/**
+ * Resource limits for safe execution
+ */
+export interface ResourceLimits {
+  maxMemoryMB: number;
+  maxExecutionTimeMs: number;
+  maxCpuCores: number;
+  maxFileOperations: number;
+  maxNetworkOperations: number;
+  allowedSystemCalls: string[];
+}
+
+/**
+ * Security assessment result
+ */
+export interface SecurityAssessment {
+  isSafe: boolean;
+  risks: string[];
+  confidence: number;
+  recommendations: string[];
+  allowExecution: boolean;
+}
+
+/**
+ * Execution options
+ */
+export interface ExecutionOptions {
+  timeoutMs?: number;
+  memoryLimitMB?: number;
+  allowNetworking?: boolean;
+  allowFileSystem?: boolean;
+}
+
+/**
+ * Test case for code execution
+ */
+export interface TestCase {
+  description: string;
+  input?: any;
+  expectedOutput?: any;
+  timeoutMs?: number;
+  critical?: boolean;
 }
 
 /**
@@ -166,9 +212,6 @@ export interface ResourceUsage {
  * User recommendation based on hallucination analysis
  */
 export interface Recommendation {
-  /** Hallucination category this recommendation addresses */
-  category: HallucinationType;
-  
   /** Priority level for this recommendation */
   priority: 'high' | 'medium' | 'low';
   
@@ -221,6 +264,34 @@ export interface DetectionMetadata {
 }
 
 /**
+ * Analysis metadata
+ */
+export interface AnalysisMetadata {
+  /** Time taken for detection in milliseconds */
+  detectionTimeMs: number;
+  
+  /** Length of code analyzed */
+  codeLength: number;
+  
+  /** Programming language */
+  language: string;
+  
+  /** Detection methods used */
+  detectionMethods: DetectionMethod[];
+  
+  /** Analysis version */
+  analysisVersion: string;
+  
+  /** Pattern statistics if available */
+  patternStats?: {
+    totalPatterns: number;
+    byCategory: Record<string, number>;
+    bySeverity: Record<string, number>;
+    avgConfidence: number;
+  };
+}
+
+/**
  * Complete result of CodeHalu hallucination analysis
  */
 export interface CodeHaluResult {
@@ -233,28 +304,14 @@ export interface CodeHaluResult {
   /** Execution result if code was executed */
   executionResult?: ExecutionResult;
   
-  /** Adjustment to code quality score based on hallucinations */
-  codeQualityImpact: number;
-  
   /** Generated recommendations for the user */
   recommendations: Recommendation[];
   
-  /** Metadata about the detection process */
-  detectionMetadata: DetectionMetadata;
+  /** Metadata about the analysis process */
+  analysisMetadata: AnalysisMetadata;
   
-  /** Whether any critical hallucinations were found */
-  hasCriticalIssues: boolean;
-  
-  /** Summary of findings for quick overview */
-  summary: {
-    totalHallucinations: number;
-    criticalCount: number;
-    highSeverityCount: number;
-    mediumSeverityCount: number;
-    lowSeverityCount: number;
-    mostCommonCategory: HallucinationType | null;
-    overallRisk: 'low' | 'medium' | 'high' | 'critical';
-  };
+  /** Business impact assessment */
+  businessImpact: BusinessImpact;
 }
 
 /**
@@ -332,68 +389,7 @@ export interface HistoricalPattern {
   reliability: number;
 }
 
-/**
- * Test case for execution verification
- */
-export interface TestCase {
-  /** Input data for the test */
-  input: any;
-  
-  /** Expected output */
-  expectedOutput: any;
-  
-  /** Description of what this test validates */
-  description: string;
-  
-  /** Whether this is a critical test case */
-  critical?: boolean;
-  
-  /** Timeout for this specific test */
-  timeoutMs?: number;
-}
 
-/**
- * Security assessment for code execution
- */
-export interface SecurityAssessment {
-  /** Whether code is safe to execute */
-  isSafe: boolean;
-  
-  /** Security risks identified */
-  risks: string[];
-  
-  /** Confidence in safety assessment */
-  confidence: number;
-  
-  /** Recommended security measures */
-  recommendations: string[];
-  
-  /** Whether execution should be allowed */
-  allowExecution: boolean;
-}
-
-/**
- * Resource limits for code execution
- */
-export interface ResourceLimits {
-  /** Maximum memory in megabytes */
-  maxMemoryMB: number;
-  
-  /** Maximum execution time in milliseconds */
-  maxExecutionTimeMs: number;
-  
-  /** Maximum CPU cores */
-  maxCpuCores: number;
-  
-  /** Maximum file system operations */
-  maxFileOperations?: number;
-  
-  /** Maximum network operations */
-  maxNetworkOperations?: number;
-  
-  /** Allowed system calls */
-  allowedSystemCalls?: string[];
-}
 
 /**
  * Pattern match result for hallucination detection
@@ -488,21 +484,25 @@ export const DEFAULT_BUSINESS_IMPACT: Record<HallucinationType, BusinessImpact> 
     estimatedDevTimeWasted: 2.5,
     costMultiplier: 1.3,
     qualityImpact: 25,
+    costOfHallucinations: 125.0,
   },
   naming: {
     estimatedDevTimeWasted: 1.8,
     costMultiplier: 1.2,
     qualityImpact: 20,
+    costOfHallucinations: 90.0,
   },
   resource: {
     estimatedDevTimeWasted: 4.0,
     costMultiplier: 1.8,
     qualityImpact: 40,
+    costOfHallucinations: 200.0,
   },
   logic: {
     estimatedDevTimeWasted: 3.2,
     costMultiplier: 1.5,
     qualityImpact: 35,
+    costOfHallucinations: 160.0,
   },
 };
 

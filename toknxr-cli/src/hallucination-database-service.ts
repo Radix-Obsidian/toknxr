@@ -426,49 +426,68 @@ export function convertCodeHaluResultToDbRecords(
   executionResult?: CreateExecutionResultInput;
   recommendations: CreateHallucinationRecommendationInput[];
 } {
+  const analysisId = `analysis-${Date.now()}`;
+  
+  // Helper functions
+  const getMostCommonCategory = (categories: any[]) => {
+    if (categories.length === 0) return null;
+    const counts = categories.reduce((acc, cat) => {
+      acc[cat.type] = (acc[cat.type] || 0) + 1;
+      return acc;
+    }, {});
+    return Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
+  };
+  
+  const calculateOverallRisk = (rate: number) => {
+    if (rate > 0.8) return 'critical';
+    if (rate > 0.6) return 'high';
+    if (rate > 0.3) return 'medium';
+    return 'low';
+  };
+  
   // Create analysis record
   const analysis: CreateHallucinationAnalysisInput = {
     interaction_id: interactionId,
     overall_hallucination_rate: result.overallHallucinationRate,
-    analysis_version: result.detectionMetadata.detectionVersion,
-    detection_time_ms: result.detectionMetadata.analysisTimeMs,
-    code_length: result.detectionMetadata.codeLength,
-    language: result.detectionMetadata.language,
-    execution_verified: result.detectionMetadata.executionVerified,
-    has_critical_issues: result.hasCriticalIssues,
-    code_quality_impact: result.codeQualityImpact,
-    total_hallucinations: result.summary.totalHallucinations,
-    critical_count: result.summary.criticalCount,
-    high_severity_count: result.summary.highSeverityCount,
-    medium_severity_count: result.summary.mediumSeverityCount,
-    low_severity_count: result.summary.lowSeverityCount,
-    most_common_category: result.summary.mostCommonCategory,
-    overall_risk: result.summary.overallRisk,
+    analysis_version: result.analysisMetadata.analysisVersion,
+    detection_time_ms: result.analysisMetadata.detectionTimeMs,
+    code_length: result.analysisMetadata.codeLength,
+    language: result.analysisMetadata.language,
+    execution_verified: result.executionResult ? true : false,
+    has_critical_issues: result.categories.some(c => c.severity === 'critical'),
+    code_quality_impact: result.businessImpact.qualityImpact,
+    total_hallucinations: result.categories.length,
+    critical_count: result.categories.filter(c => c.severity === 'critical').length,
+    high_severity_count: result.categories.filter(c => c.severity === 'high').length,
+    medium_severity_count: result.categories.filter(c => c.severity === 'medium').length,
+    low_severity_count: result.categories.filter(c => c.severity === 'low').length,
+    most_common_category: getMostCommonCategory(result.categories),
+    overall_risk: calculateOverallRisk(result.overallHallucinationRate),
   };
 
   // Create category records
   const categories: CreateHallucinationCategoryInput[] = result.categories.map(category => ({
-    analysis_id: '', // Will be set after analysis is created
+    analysis_id: analysisId,
     category_type: category.type,
     category_subtype: category.subtype,
     severity: category.severity,
     confidence: category.confidence,
-    detection_method: category.detectionMethod,
-    evidence: category.evidence,
+    detection_method: 'static',
+    evidence: category.evidence.map(e => e.content),
     line_numbers: category.lineNumbers,
     error_message: category.errorMessage,
     suggested_fix: category.suggestedFix,
     estimated_dev_time_wasted: category.businessImpact.estimatedDevTimeWasted,
     cost_multiplier: category.businessImpact.costMultiplier,
     quality_impact: category.businessImpact.qualityImpact,
-    estimated_cost_usd: category.businessImpact.estimatedCostUSD,
+    estimated_cost_usd: category.businessImpact.costOfHallucinations,
   }));
 
   // Create execution result if available
   let executionResult: CreateExecutionResultInput | undefined;
   if (result.executionResult) {
     executionResult = {
-      analysis_id: '', // Will be set after analysis is created
+      analysis_id: analysisId,
       success: result.executionResult.success,
       exit_code: result.executionResult.exitCode,
       timed_out: result.executionResult.timedOut,
@@ -492,8 +511,8 @@ export function convertCodeHaluResultToDbRecords(
 
   // Create recommendation records
   const recommendations: CreateHallucinationRecommendationInput[] = result.recommendations.map(rec => ({
-    analysis_id: '', // Will be set after analysis is created
-    category_type: rec.category,
+    analysis_id: analysisId,
+    category_type: 'mapping',
     priority: rec.priority,
     title: rec.title,
     description: rec.description,

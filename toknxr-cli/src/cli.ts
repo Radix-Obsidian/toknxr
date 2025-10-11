@@ -28,6 +28,12 @@ import {
   type OraWithProgress,
 } from './ui.js';
 
+
+
+
+
+
+
 // Define a type for the interaction object
 interface Interaction {
   provider: string;
@@ -58,11 +64,15 @@ process.stderr.on('error', (err: NodeJS.ErrnoException | null) => {
 
 const program = new Command();
 
+// Simple rainbow color function
+function applyRainbow(text: string): string {
+  const colors = [chalk.red, chalk.yellow, chalk.green, chalk.cyan, chalk.blue, chalk.magenta];
+  return text.split('').map((char, i) => colors[i % colors.length](char)).join('');
+}
+
 // ASCII Art Welcome Screen with gradient colors
 const welcomeMessage = `
-${chalk.bold.hex('#FFD700')('🐑 Welcome to TokNXR by Golden Sheep AI 🐑')}
-
-${chalk.bold.cyan('Your AI Effectiveness & Code Quality Analysis CLI')}
+${chalk.bold.cyan('TokNXR CLI - AI Effectiveness & Code Quality Analysis')}
 
 ${chalk.bold.underline('Getting Started Guide:')}
 
@@ -87,7 +97,7 @@ ${chalk.bold.white('Chapter 3: Need Assistance?')}
 ${chalk.gray('------------------------------------------------------------')}
 `;
 
-console.log(welcomeMessage);
+
 
 /**
  * Generate weekly cost trends for the cost chart visualization
@@ -158,6 +168,10 @@ program
           name: chalk.yellow('🧠 AI Analysis') + chalk.gray(' - Hallucination detection'),
           value: 'hallucinations',
         },
+        {
+          name: chalk.cyan('🔬 Enhanced Detection') + chalk.gray(' - CodeHalu analysis'),
+          value: 'enhanced_detection',
+        },
         { name: chalk.red('⚙️ Initialize') + chalk.gray(' - Set up configuration'), value: 'init' },
       ]);
 
@@ -174,6 +188,9 @@ program
             break;
           case 'hallucinations':
             await program.parseAsync(['node', 'toknxr', 'hallucinations']);
+            break;
+          case 'enhanced_detection':
+            await program.parseAsync(['node', 'toknxr', 'hallucinations-detailed']);
             break;
           case 'init':
             await program.parseAsync(['node', 'toknxr', 'init']);
@@ -1017,6 +1034,10 @@ import {
 import { aiAnalytics } from './ai-analytics.js';
 import { auditLogger, AuditEventType, initializeAuditLogging } from './audit-logger.js';
 
+// Import enhanced hallucination detection commands
+import { hallucinationsDetailedCommand, codeQualityReportCommand } from './commands/hallucination-commands.js';
+import { createCodeHaluDetector, detectCodeHallucinations } from './enhanced-hallucination-detector.js';
+
 program
   .command('analyze')
   .description('Analyze an AI response for hallucinations and quality issues')
@@ -1140,6 +1161,72 @@ program
       console.log(chalk.yellow('  ⚠️  Moderate quality - review needed'));
     } else {
       console.log(chalk.red('  ❌ Poor quality - significant issues detected'));
+    }
+  });
+
+// Enhanced hallucination detection commands
+program
+  .command('hallucinations-detailed')
+  .description('Detailed hallucination analysis with CodeHalu categories')
+  .option('-c, --category <category>', 'Filter by hallucination category')
+  .option('-p, --provider <provider>', 'Filter by AI provider')
+  .option('-f, --file <file>', 'Analyze code from file')
+  .option('--code <code>', 'Analyze code directly')
+  .option('-l, --language <language>', 'Programming language (default: python)')
+  .option('--no-execution', 'Disable execution analysis')
+  .option('-o, --output <file>', 'Export results to file')
+  .action(hallucinationsDetailedCommand);
+
+program
+  .command('code-quality-report')
+  .description('Generate comprehensive code quality report')
+  .option('-o, --output <file>', 'Output file path')
+  .option('--format <format>', 'Output format (json|html)', 'json')
+  .option('--include-execution', 'Include execution analysis in report')
+  .action(codeQualityReportCommand);
+
+program
+  .command('detect-hallucinations')
+  .description('Quick hallucination detection for code snippet')
+  .argument('<code>', 'Code to analyze')
+  .option('-l, --language <language>', 'Programming language (default: python)', 'python')
+  .option('--no-execution', 'Disable execution analysis')
+  .option('--confidence <threshold>', 'Confidence threshold (0.0-1.0)', '0.6')
+  .action(async (code, options) => {
+    console.log(chalk.bold.blue('🔍 Quick Hallucination Detection'));
+    console.log(chalk.gray('━'.repeat(50)));
+    
+    try {
+      const result = await detectCodeHallucinations(code, options.language, {
+        enableExecution: !options.noExecution,
+        confidenceThreshold: parseFloat(options.confidence),
+      });
+      
+      const rateColor = result.overallHallucinationRate > 0.7 ? chalk.red : 
+                       result.overallHallucinationRate > 0.4 ? chalk.yellow : chalk.green;
+      
+      console.log(`\n🎯 Hallucination Rate: ${rateColor(`${(result.overallHallucinationRate * 100).toFixed(1)}%`)}`);
+      console.log(`📊 Issues Found: ${result.categories.length}`);
+      console.log(`⏱️  Analysis Time: ${result.analysisMetadata.detectionTimeMs}ms`);
+      
+      if (result.categories.length > 0) {
+        console.log(chalk.yellow('\n⚠️  Top Issues:'));
+        result.categories.slice(0, 3).forEach((category, index) => {
+          console.log(`  ${index + 1}. ${category.type}/${category.subtype} - ${category.description}`);
+        });
+      } else {
+        console.log(chalk.green('\n✅ No significant hallucinations detected!'));
+      }
+      
+      if (result.recommendations.length > 0) {
+        console.log(chalk.blue('\n💡 Quick Recommendations:'));
+        result.recommendations.slice(0, 2).forEach(rec => {
+          console.log(`  • ${rec.title}`);
+        });
+      }
+      
+    } catch (error) {
+      console.error(chalk.red('❌ Detection failed:'), error);
     }
   });
 
