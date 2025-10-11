@@ -44,7 +44,7 @@ case $choice in
         ;;
     2)
         echo "📋 Creating GitHub release..."
-        echo "Package file: radix-obsidian-toknxr-cli-0.2.2.tgz"
+        echo "Package file: radix-obsidian-toknxr-cli-0.3.0.tgz"
         echo "You can upload this file to a GitHub release manually"
         echo "Go to: https://github.com/Radix-Obsidian/toknxr/releases/new"
         ;;
@@ -66,4 +66,4 @@ echo "For GitHub Packages:"
 echo "  npm install @radix-obsidian/toknxr-cli --registry=https://npm.pkg.github.com"
 echo ""
 echo "For npm (already published):"
-echo "  npm install -g @goldensheepai/toknxr-cli@0.2.2"
+echo "  npm install -g @goldensheepai/toknxr-cli@0.3.0"
