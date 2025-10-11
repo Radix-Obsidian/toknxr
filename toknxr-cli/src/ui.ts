@@ -135,13 +135,23 @@ export const createFilterInterface = (
   });
 };
 
-export const createSearchInterface = (
+export const createSearchInterface = async (
   fields: string[]
 ): Promise<{ query: string; fields: string[] }> => {
-  return new Promise(resolve => {
-    console.log('Search interface is not implemented in this mock.');
-    resolve({ query: 'test', fields });
+  const { selectedFields } = await inquirer.prompt({
+    type: 'checkbox',
+    name: 'selectedFields',
+    message: 'Which fields would you like to search in?',
+    choices: fields.map(field => ({ name: field, value: field, checked: true })),
+    validate: (answer: any) => {
+      if (!answer || answer.length < 1) {
+        return 'You must choose at least one field.';
+      }
+      return true;
+    }
   });
+  
+  return { query: '', fields: selectedFields };
 };
 
 export class InteractiveDataExplorer<T> {
@@ -166,12 +176,64 @@ export class CliStateManager {
   }
 }
 
-export const filterAndSearchInteractions = <T>(
+export const filterAndSearchInteractions = <T extends Record<string, any>>(
   interactions: T[],
   _filters: Record<string, unknown>,
-  _search: { query: string; fields: string[] }
+  search: { query: string; fields: string[] }
 ): T[] => {
-  return interactions;
+  if (!search.query || search.query.trim().length === 0) {
+    return interactions;
+  }
+  
+  const query = search.query.toLowerCase();
+  
+  return interactions.filter(interaction => {
+    return search.fields.some(field => {
+      const value = interaction[field];
+      if (typeof value === 'string') {
+        return value.toLowerCase().includes(query);
+      }
+      return false;
+    });
+  });
+};
+
+// Helper functions for search results
+export const calcRelevanceScore = <T extends Record<string, any>>(
+  interaction: T,
+  query: string,
+  fields: string[]
+): number => {
+  const queryLower = query.toLowerCase();
+  let totalScore = 0;
+  let fieldCount = 0;
+  
+  fields.forEach(field => {
+    const value = interaction[field];
+    if (typeof value === 'string') {
+      fieldCount++;
+      const valueLower = value.toLowerCase();
+      if (valueLower.includes(queryLower)) {
+        // Exact match gets higher score
+        if (valueLower === queryLower) {
+          totalScore += 1.0;
+        } else if (valueLower.startsWith(queryLower)) {
+          totalScore += 0.8;
+        } else {
+          totalScore += 0.6;
+        }
+      }
+    }
+  });
+  
+  return fieldCount > 0 ? totalScore / fieldCount : 0;
+};
+
+export const highlightMatch = (text: string, query: string): string => {
+  if (!text || !query) return text;
+  
+  const regex = new RegExp(`(${query})`, 'gi');
+  return text.replace(regex, chalk.yellow.bold('$1'));
 };
 
 export interface OraWithProgress {

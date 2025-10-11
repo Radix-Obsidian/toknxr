@@ -1848,6 +1848,9 @@ program
 
       const availableFields = ['provider', 'model', 'userPrompt', 'taskType', 'requestId'];
       const searchOptions = await createSearchInterface(availableFields);
+      
+      // Set the query from the command line option
+      searchOptions.query = query;
 
       if (!searchOptions) {
         console.log(chalk.gray('Search cancelled.'));
