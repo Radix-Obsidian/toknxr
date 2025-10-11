@@ -1705,15 +1705,85 @@ program
         break;
       case 's':
         console.log(chalk.yellow('\n🔍 Opening search interface...'));
-        // Prompt for search query
-        const { searchQuery } = await inquirer.prompt([
+        
+        // Load interactions to generate relevant search suggestions
+        const logFilePath = path.resolve(process.cwd(), 'interactions.log');
+        let searchSuggestions: string[] = [];
+        
+        if (fs.existsSync(logFilePath)) {
+          const fileContent = fs.readFileSync(logFilePath, 'utf8');
+          const lines = fileContent.trim().split('\n');
+          const interactions: Interaction[] = lines
+            .map(line => {
+              try {
+                return JSON.parse(line) as Interaction;
+              } catch {
+                return null;
+              }
+            })
+            .filter((interaction): interaction is Interaction => interaction !== null);
+          
+          // Extract unique search suggestions from actual data
+          const suggestions = new Set<string>();
+          
+          interactions.forEach(interaction => {
+            // Add providers
+            if (interaction.provider) suggestions.add(interaction.provider);
+            
+            // Add models
+            if (interaction.model && interaction.model !== 'unknown') suggestions.add(interaction.model);
+            
+            // Add task types
+            if (interaction.taskType) suggestions.add(interaction.taskType);
+            
+            // Add key words from prompts
+            if (interaction.userPrompt) {
+              const words = interaction.userPrompt.toLowerCase().split(/\s+/);
+              words.forEach(word => {
+                if (word.length >= 3 && !['the', 'and', 'for', 'with', 'this', 'that', 'from', 'they', 'have', 'been', 'will', 'are', 'was', 'were'].includes(word)) {
+                  suggestions.add(word);
+                }
+              });
+            }
+          });
+          
+          searchSuggestions = Array.from(suggestions).slice(0, 15); // Limit to 15 suggestions
+        }
+        
+        // Show search options
+        const searchChoices = [
+          { name: chalk.cyan('🔍 Custom Search') + chalk.gray(' - Enter your own search terms'), value: 'custom' },
+          ...searchSuggestions.map(suggestion => ({
+            name: `🔎 "${suggestion}"`,
+            value: suggestion
+          }))
+        ];
+        
+        const { searchChoice } = await inquirer.prompt([
           {
-            type: 'input',
-            name: 'searchQuery',
-            message: 'Enter your search terms:',
-            validate: (input: string) => input.trim().length >= 2 || 'Please enter at least 2 characters'
+            type: 'list',
+            name: 'searchChoice',
+            message: 'What would you like to search for?',
+            choices: searchChoices,
+            pageSize: 10
           }
         ]);
+        
+        let searchQuery: string;
+        if (searchChoice === 'custom') {
+          const { customQuery } = await inquirer.prompt([
+            {
+              type: 'input',
+              name: 'customQuery',
+              message: 'Enter your search terms:',
+              validate: (input: string) => input.trim().length >= 2 || 'Please enter at least 2 characters'
+            }
+          ]);
+          searchQuery = customQuery;
+        } else {
+          searchQuery = searchChoice;
+        }
+        
         // Execute search command
         await program.parseAsync(['node', 'toknxr', 'search', '--query', searchQuery]);
         break;
