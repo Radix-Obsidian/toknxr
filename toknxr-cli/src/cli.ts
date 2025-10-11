@@ -981,23 +981,23 @@ program
         break;
       case '2':
         console.log(chalk.magenta('\n🧠 Opening hallucination analysis...'));
-        console.log(chalk.gray('Run: ') + chalk.yellow('toknxr hallucinations'));
+        await program.parseAsync(['node', 'toknxr', 'hallucinations']);
         break;
       case '3':
         console.log(chalk.yellow('\n🔄 Opening provider comparison...'));
-        console.log(chalk.gray('Run: ') + chalk.yellow('toknxr providers'));
+        await program.parseAsync(['node', 'toknxr', 'providers']);
         break;
       case '4':
         console.log(chalk.green('\n📈 Opening comprehensive analytics...'));
-        console.log(chalk.gray('Run: ') + chalk.yellow('toknxr stats'));
+        await program.parseAsync(['node', 'toknxr', 'stats']);
         break;
       case '5':
         console.log(chalk.blue('\n🔍 Opening interaction browser...'));
-        console.log(chalk.gray('Run: ') + chalk.yellow('toknxr browse'));
+        await program.parseAsync(['node', 'toknxr', 'browse']);
         break;
       case 'm':
         console.log(chalk.gray('\n📋 Opening main menu...'));
-        console.log(chalk.gray('Run: ') + chalk.yellow('toknxr menu'));
+        await program.parseAsync(['node', 'toknxr', 'menu']);
         break;
       case 'q':
         console.log(chalk.gray('\n👋 Exiting code analysis...'));
@@ -1250,11 +1250,11 @@ program
     switch (choice) {
       case '1':
         console.log(chalk.cyan('\n📊 Opening detailed hallucination analysis...'));
-        console.log(chalk.gray('Run: ') + chalk.yellow('toknxr code-analysis'));
+        await program.parseAsync(['node', 'toknxr', 'code-analysis']);
         break;
       case '2':
         console.log(chalk.magenta('\n🔄 Opening provider comparison...'));
-        console.log(chalk.gray('Run: ') + chalk.yellow('toknxr providers'));
+        await program.parseAsync(['node', 'toknxr', 'providers']);
         break;
       case '3':
         console.log(chalk.yellow('\n💰 Analyzing business impact...'));
@@ -1267,11 +1267,11 @@ program
         break;
       case '4':
         console.log(chalk.green('\n📈 Opening comprehensive analytics...'));
-        console.log(chalk.gray('Run: ') + chalk.yellow('toknxr stats'));
+        await program.parseAsync(['node', 'toknxr', 'stats']);
         break;
       case 'm':
         console.log(chalk.gray('\n📋 Opening main menu...'));
-        console.log(chalk.gray('Run: ') + chalk.yellow('toknxr menu'));
+        await program.parseAsync(['node', 'toknxr', 'menu']);
         break;
       case 'q':
         console.log(chalk.gray('\n👋 Exiting hallucination analysis...'));
@@ -1447,7 +1447,7 @@ program
         break;
       case '2':
         console.log(chalk.magenta('\n🧠 Opening hallucination comparison...'));
-        console.log(chalk.gray('Run: ') + chalk.yellow('toknxr hallucinations'));
+        await program.parseAsync(['node', 'toknxr', 'hallucinations']);
         break;
       case '3':
         console.log(chalk.yellow('\n💰 Analyzing cost optimization...'));
@@ -1460,11 +1460,11 @@ program
         break;
       case '4':
         console.log(chalk.green('\n📈 Opening comprehensive analytics...'));
-        console.log(chalk.gray('Run: ') + chalk.yellow('toknxr stats'));
+        await program.parseAsync(['node', 'toknxr', 'stats']);
         break;
       case 'm':
         console.log(chalk.gray('\n📋 Opening main menu...'));
-        console.log(chalk.gray('Run: ') + chalk.yellow('toknxr menu'));
+        await program.parseAsync(['node', 'toknxr', 'menu']);
         break;
       case 'q':
         console.log(chalk.gray('\n👋 Exiting provider comparison...'));
@@ -1701,15 +1701,25 @@ program
         break;
       case 'f':
         console.log(chalk.magenta('\n🔍 Opening filter interface...'));
-        console.log(chalk.gray('Run: ') + chalk.yellow('toknxr filter'));
+        await program.parseAsync(['node', 'toknxr', 'filter']);
         break;
       case 's':
         console.log(chalk.yellow('\n🔍 Opening search interface...'));
-        console.log(chalk.gray('Run: ') + chalk.yellow('toknxr search --query "your terms"'));
+        // Prompt for search query
+        const { searchQuery } = await inquirer.prompt([
+          {
+            type: 'input',
+            name: 'searchQuery',
+            message: 'Enter your search terms:',
+            validate: (input: string) => input.trim().length >= 2 || 'Please enter at least 2 characters'
+          }
+        ]);
+        // Execute search command
+        await program.parseAsync(['node', 'toknxr', 'search', '--query', searchQuery]);
         break;
       case 'a':
         console.log(chalk.green('\n📊 Opening analytics view...'));
-        console.log(chalk.gray('Run: ') + chalk.yellow('toknxr stats'));
+        await program.parseAsync(['node', 'toknxr', 'stats']);
         break;
       case 'm':
         console.log(chalk.gray('\n📋 Opening main menu...'));
