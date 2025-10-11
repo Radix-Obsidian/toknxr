@@ -3,9 +3,12 @@ import 'dotenv/config';
 import { Command } from 'commander';
 import chalk from 'chalk';
 import readline from 'readline';
-import { startProxyServer } from './proxy.js';
+import inquirer from 'inquirer';
+import { startProxyServer, ProviderConfig } from './proxy.js';
+import { testConnection, generateSampleInteraction } from './utils.js';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import os from 'os';
 import open from 'open';
 import {
   createStatsOverview,
@@ -56,29 +59,35 @@ process.stderr.on('error', (err: NodeJS.ErrnoException | null) => {
 const program = new Command();
 
 // ASCII Art Welcome Screen with gradient colors
-const asciiArt = `
-${chalk.blue('  ████████╗')}${chalk.hex('#6B5BED')('  ██████╗ ')}${chalk.hex('#9B5BED')(' ██╗  ██╗')}${chalk.hex('#CB5BED')(' ███╗   ██╗')}${chalk.hex('#ED5B9B')(' ██╗  ██╗')}${chalk.hex('#ED5B6B')(' ██████╗ ')}
-${chalk.blue('  ╚══██╔══╝')}${chalk.hex('#6B5BED')(' ██╔═══██╗')}${chalk.hex('#9B5BED')(' ██║ ██╔╝')}${chalk.hex('#CB5BED')(' ████╗  ██║')}${chalk.hex('#ED5B9B')(' ╚██╗██╔╝')}${chalk.hex('#ED5B6B')(' ██╔══██╗')}
-${chalk.blue('     ██║   ')}${chalk.hex('#6B5BED')(' ██║   ██║')}${chalk.hex('#9B5BED')(' █████╔╝ ')}${chalk.hex('#CB5BED')(' ██╔██╗ ██║')}${chalk.hex('#ED5B9B')('  ╚███╔╝ ')}${chalk.hex('#ED5B6B')(' ██████╔╝')}
-${chalk.blue('     ██║   ')}${chalk.hex('#6B5BED')(' ██║   ██║')}${chalk.hex('#9B5BED')(' ██╔═██╗ ')}${chalk.hex('#CB5BED')(' ██║╚██╗██║')}${chalk.hex('#ED5B9B')('  ██╔██╗ ')}${chalk.hex('#ED5B6B')(' ██╔══██╗')}
-${chalk.blue('     ██║   ')}${chalk.hex('#6B5BED')(' ╚██████╔╝')}${chalk.hex('#9B5BED')(' ██║  ██╗')}${chalk.hex('#CB5BED')(' ██║ ╚████║')}${chalk.hex('#ED5B9B')(' ██╔╝ ██╗')}${chalk.hex('#ED5B6B')(' ██║  ██║')}
-${chalk.blue('     ╚═╝   ')}${chalk.hex('#6B5BED')('  ╚═════╝ ')}${chalk.hex('#9B5BED')(' ╚═╝  ╚═╝')}${chalk.hex('#CB5BED')(' ╚═╝  ╚═══╝')}${chalk.hex('#ED5B9B')(' ╚═╝  ╚═╝')}${chalk.hex('#ED5B6B')(' ╚═╝  ╚═╝')}
+const welcomeMessage = `
+${chalk.bold.hex('#FFD700')('🐑 Welcome to TokNXR by Golden Sheep AI 🐑')}
 
-${chalk.cyan('Tips for getting started:')}
-${chalk.white('1. Start tracking:')} ${chalk.yellow('toknxr start')} ${chalk.gray('- Launch the proxy server')}
-${chalk.white('2. View analytics:')} ${chalk.yellow('toknxr stats')} ${chalk.gray('- See token usage and code quality')}
-${chalk.white('3. Deep dive:')} ${chalk.yellow('toknxr code-analysis')} ${chalk.gray('- Detailed quality insights')}
-${chalk.white('4. Interactive menu:')} ${chalk.yellow('toknxr menu')} ${chalk.gray('- Guided command interface')}
-${chalk.white('5. Set limits:')} ${chalk.yellow('toknxr policy:init')} ${chalk.gray('- Configure spending policies')}
-${chalk.white('7. Need help?')} ${chalk.yellow('toknxr --help')} ${chalk.gray('- View all commands')}
+${chalk.bold.cyan('Your AI Effectiveness & Code Quality Analysis CLI')}
 
-${chalk.gray('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')}
+${chalk.bold.underline('Getting Started Guide:')}
 
-${chalk.hex('#FFD700')('🐑 Powered by Golden Sheep AI')}
+${chalk.bold.white('Chapter 1: Core Functionality')}
+  ${chalk.white('1.1 Launching the Proxy Server:')}
+     ${chalk.yellow('toknxr start')} ${chalk.gray('- Begin tracking your AI interactions.')}
+  ${chalk.white('1.2 Viewing Analytics:')}
+     ${chalk.yellow('toknxr stats')} ${chalk.gray('- Get an overview of token usage and code quality.')}
+  ${chalk.white('1.3 Deep Code Analysis:')}
+     ${chalk.yellow('toknxr code-analysis')} ${chalk.gray('- Dive into detailed quality insights for your AI-generated code.')}
 
+${chalk.bold.white('Chapter 2: Advanced Usage')}
+  ${chalk.white('2.1 Interactive Command Menu:')}
+     ${chalk.yellow('toknxr menu')} ${chalk.gray('- Navigate through commands with a guided interface.')}
+  ${chalk.white('2.2 Configuring Spending Policies:')}
+     ${chalk.yellow('toknxr policy:init')} ${chalk.gray('- Set up and manage your AI spending limits.')}
+
+${chalk.bold.white('Chapter 3: Need Assistance?')}
+  ${chalk.white('3.1 Accessing Help:')}
+     ${chalk.yellow('toknxr --help')} ${chalk.gray('- View all available commands and their options.')}
+
+${chalk.gray('------------------------------------------------------------')}
 `;
 
-console.log(asciiArt);
+console.log(welcomeMessage);
 
 /**
  * Generate weekly cost trends for the cost chart visualization
@@ -446,11 +455,6 @@ program
     console.log('\n' + chalk.blue.bold('🔍 Interactive Navigation'));
     console.log(chalk.gray('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'));
 
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout,
-    });
-
     // Analyze current situation for intelligent suggestions
     const currentSituation = {
       needsBudgetAttention: grandTotals.costUSD > 40, // 80% of monthly budget
@@ -507,20 +511,23 @@ program
       },
     ];
 
-    console.log(chalk.gray('Select an option to continue your analysis journey:'));
-    console.log();
+    console.log(chalk.gray('\nSelect an option to continue your analysis journey:'));
 
-    navigationOptions.forEach(option => {
-      const prefix = option.recommended ? chalk.green('★') : ' ';
-      console.log(`${prefix} ${chalk.bold(option.key)}) ${option.title}`);
-      console.log(`    ${option.description}`);
-    });
+    const choices = navigationOptions.map(option => ({
+      name: `${option.recommended ? chalk.green('★') : ' '}${chalk.bold(option.key)}) ${option.title}\n    ${option.description}`,
+      value: option.key,
+    }));
 
-    console.log();
-    rl.question(chalk.cyan('Your choice: '), answer => {
-      const choice = answer.toLowerCase().trim();
+    const { choice } = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'choice',
+        message: 'Your choice:',
+        choices: choices,
+      },
+    ]);
 
-      switch (choice) {
+    switch (choice) {
         case '1':
           console.log(chalk.blue('\n🔍 Navigating to detailed analysis...'));
           console.log(
@@ -652,16 +659,13 @@ program
           break;
 
         default:
-          console.log(chalk.yellow(`Unknown option "${answer}". Showing help...`));
+          console.log(chalk.yellow(`Unknown option "${choice}". Showing help...`));
           console.log(chalk.cyan('\nAvailable commands:'));
           console.log(`  ${chalk.yellow('toknxr menu')}     - Interactive command menu`);
           console.log(`  ${chalk.yellow('toknxr stats')}    - Current usage overview`);
           console.log(`  ${chalk.yellow('toknxr start')}    - Launch proxy server`);
           console.log(`  ${chalk.yellow('toknxr --help')}   - View all commands`);
-      }
-
-      rl.close();
-    });
+    }
   });
 
 program
@@ -773,7 +777,7 @@ program
 program
   .command('code-analysis')
   .description('Show detailed code quality analysis from coding interactions')
-  .action(() => {
+  .action(async () => {
     const logFilePath = path.resolve(process.cwd(), 'interactions.log');
     if (!fs.existsSync(logFilePath)) {
       console.log(
@@ -899,6 +903,108 @@ program
     }
 
     console.log(`\n${chalk.gray('Total coding interactions analyzed: ' + interactions.length)}`);
+
+    // Interactive navigation
+    console.log('\n' + chalk.blue.bold('🔍 Interactive Navigation'));
+    console.log(chalk.gray('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'));
+
+    const navigationOptions = [
+      {
+        key: '1',
+        title: chalk.cyan('📊 View Detailed Metrics'),
+        description: 'Drill down into specific quality metrics',
+        available: interactions.length > 0,
+      },
+      {
+        key: '2',
+        title: chalk.magenta('🧠 Hallucination Analysis'),
+        description: 'Analyze potential hallucinations in code',
+        available: interactions.length > 0,
+      },
+      {
+        key: '3',
+        title: chalk.yellow('🔄 Provider Comparison'),
+        description: 'Compare code quality across AI providers',
+        available: interactions.length > 0,
+      },
+      {
+        key: '4',
+        title: chalk.green('📈 View All Analytics'),
+        description: 'Go to comprehensive statistics view',
+        available: true,
+      },
+      {
+        key: '5',
+        title: chalk.blue('🔍 Browse Interactions'),
+        description: 'Browse through individual interactions',
+        available: interactions.length > 0,
+      },
+      {
+        key: 'm',
+        title: chalk.gray('📋 Main Menu'),
+        description: 'Return to main menu',
+        available: true,
+      },
+      {
+        key: 'q',
+        title: chalk.gray('❌ Exit'),
+        description: 'Exit code analysis',
+        available: true,
+      },
+    ];
+
+    const availableChoices = navigationOptions
+      .filter(option => option.available)
+      .map(option => ({
+        name: `${chalk.bold(option.key)}) ${option.title}\n    ${option.description}`,
+        value: option.key,
+      }));
+
+    const { choice } = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'choice',
+        message: 'What would you like to explore?',
+        choices: availableChoices,
+      },
+    ]);
+
+    switch (choice) {
+      case '1':
+        console.log(chalk.cyan('\n📊 Showing detailed quality metrics...'));
+        console.log(chalk.gray('Detailed breakdown by language and complexity:'));
+        Object.entries(langStats).forEach(([lang, count]) => {
+          const langInteractions = interactions.filter(i => (i.codeQualityMetrics?.language || 'unknown') === lang);
+          const avgQuality = langInteractions.reduce((sum, i) => sum + (i.codeQualityScore || 0), 0) / langInteractions.length;
+          console.log(`  • ${lang}: ${count} requests, avg quality: ${avgQuality.toFixed(1)}/100`);
+        });
+        break;
+      case '2':
+        console.log(chalk.magenta('\n🧠 Opening hallucination analysis...'));
+        console.log(chalk.gray('Run: ') + chalk.yellow('toknxr hallucinations'));
+        break;
+      case '3':
+        console.log(chalk.yellow('\n🔄 Opening provider comparison...'));
+        console.log(chalk.gray('Run: ') + chalk.yellow('toknxr providers'));
+        break;
+      case '4':
+        console.log(chalk.green('\n📈 Opening comprehensive analytics...'));
+        console.log(chalk.gray('Run: ') + chalk.yellow('toknxr stats'));
+        break;
+      case '5':
+        console.log(chalk.blue('\n🔍 Opening interaction browser...'));
+        console.log(chalk.gray('Run: ') + chalk.yellow('toknxr browse'));
+        break;
+      case 'm':
+        console.log(chalk.gray('\n📋 Opening main menu...'));
+        console.log(chalk.gray('Run: ') + chalk.yellow('toknxr menu'));
+        break;
+      case 'q':
+        console.log(chalk.gray('\n👋 Exiting code analysis...'));
+        break;
+      default:
+        console.log(chalk.yellow(`Unknown option "${choice}".`));
+    }
   });
 
 // Import required modules for new AI analysis commands
@@ -1042,7 +1148,7 @@ program
   .description('Show hallucination statistics and trends')
   .option('-p, --provider <provider>', 'Filter by AI provider')
   .option('-l, --last <hours>', 'Show last N hours (default: 24)', '24')
-  .action(options => {
+  .action(async options => {
     const analytics = aiAnalytics.generateAnalytics();
 
     console.log(chalk.bold.blue('🧠 Hallucination Analytics'));
@@ -1081,12 +1187,104 @@ program
         console.log(`  • ${rec}`);
       });
     }
+
+    // Interactive navigation
+    console.log('\n' + chalk.blue.bold('🔍 Interactive Navigation'));
+    console.log(chalk.gray('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'));
+
+    const navigationOptions = [
+      {
+        key: '1',
+        title: chalk.cyan('📊 View Detailed Analysis'),
+        description: 'Deep dive into specific hallucination patterns',
+        available: analytics.totalInteractions > 0,
+      },
+      {
+        key: '2',
+        title: chalk.magenta('🔄 Compare Providers'),
+        description: 'Detailed provider comparison for hallucinations',
+        available: Object.keys(analytics.providerComparison).length > 1,
+      },
+      {
+        key: '3',
+        title: chalk.yellow('💰 Business Impact Analysis'),
+        description: 'Analyze cost and time impact of hallucinations',
+        available: analytics.hallucinationMetrics.businessImpact.estimatedDevTimeWasted > 0,
+      },
+      {
+        key: '4',
+        title: chalk.green('📈 View All Analytics'),
+        description: 'Go to comprehensive statistics view',
+        available: true,
+      },
+      {
+        key: 'm',
+        title: chalk.gray('📋 Main Menu'),
+        description: 'Return to main menu',
+        available: true,
+      },
+      {
+        key: 'q',
+        title: chalk.gray('❌ Exit'),
+        description: 'Exit hallucination analysis',
+        available: true,
+      },
+    ];
+
+    const availableChoices = navigationOptions
+      .filter(option => option.available)
+      .map(option => ({
+        name: `${chalk.bold(option.key)}) ${option.title}\n    ${option.description}`,
+        value: option.key,
+      }));
+
+    const { choice } = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'choice',
+        message: 'What would you like to explore?',
+        choices: availableChoices,
+      },
+    ]);
+
+    switch (choice) {
+      case '1':
+        console.log(chalk.cyan('\n📊 Opening detailed hallucination analysis...'));
+        console.log(chalk.gray('Run: ') + chalk.yellow('toknxr code-analysis'));
+        break;
+      case '2':
+        console.log(chalk.magenta('\n🔄 Opening provider comparison...'));
+        console.log(chalk.gray('Run: ') + chalk.yellow('toknxr providers'));
+        break;
+      case '3':
+        console.log(chalk.yellow('\n💰 Analyzing business impact...'));
+        console.log(chalk.gray('Business impact details:'));
+        const impact = analytics.hallucinationMetrics.businessImpact;
+        console.log(`  • Estimated dev time wasted: ${impact.estimatedDevTimeWasted}h`);
+        console.log(`  • Quality degradation score: ${impact.qualityDegradationScore}/100`);
+        console.log(`  • ROI impact: ${impact.roiImpact}% reduction`);
+        console.log(`  • Extra cost from hallucinations: ${impact.costOfHallucinations.toFixed(2)}`);
+        break;
+      case '4':
+        console.log(chalk.green('\n📈 Opening comprehensive analytics...'));
+        console.log(chalk.gray('Run: ') + chalk.yellow('toknxr stats'));
+        break;
+      case 'm':
+        console.log(chalk.gray('\n📋 Opening main menu...'));
+        console.log(chalk.gray('Run: ') + chalk.yellow('toknxr menu'));
+        break;
+      case 'q':
+        console.log(chalk.gray('\n👋 Exiting hallucination analysis...'));
+        break;
+      default:
+        console.log(chalk.yellow(`Unknown option "${choice}".`));
+    }
   });
 
 program
   .command('providers')
   .description('Compare AI provider performance')
-  .action(() => {
+  .action(async () => {
     const analytics = aiAnalytics.generateAnalytics();
 
     console.log(chalk.bold.blue('🔄 AI Provider Comparison'));
@@ -1160,18 +1358,181 @@ program
         `  Needs Attention: ${chalk.red(worstProvider[0])} (${worstProvider[1].avgQualityScore}/100 quality)`
       );
     }
+
+    // Interactive navigation
+    console.log('\n' + chalk.blue.bold('🔍 Interactive Navigation'));
+    console.log(chalk.gray('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'));
+
+    const providerList = Object.keys(analytics.providerComparison);
+    const navigationOptions = [
+      {
+        key: '1',
+        title: chalk.cyan('📊 Detailed Provider Analysis'),
+        description: 'Deep dive into individual provider metrics',
+        available: providerList.length > 0,
+      },
+      {
+        key: '2',
+        title: chalk.magenta('🧠 Hallucination Comparison'),
+        description: 'Compare hallucination rates across providers',
+        available: providerList.length > 1,
+      },
+      {
+        key: '3',
+        title: chalk.yellow('💰 Cost Optimization'),
+        description: 'Analyze cost-effectiveness by provider',
+        available: true,
+      },
+      {
+        key: '4',
+        title: chalk.green('📈 View All Analytics'),
+        description: 'Go to comprehensive statistics view',
+        available: true,
+      },
+      {
+        key: 'm',
+        title: chalk.gray('📋 Main Menu'),
+        description: 'Return to main menu',
+        available: true,
+      },
+      {
+        key: 'q',
+        title: chalk.gray('❌ Exit'),
+        description: 'Exit provider comparison',
+        available: true,
+      },
+    ];
+
+    const availableChoices = navigationOptions
+      .filter(option => option.available)
+      .map(option => ({
+        name: `${chalk.bold(option.key)}) ${option.title}\n    ${option.description}`,
+        value: option.key,
+      }));
+
+    const { choice } = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'choice',
+        message: 'What would you like to explore?',
+        choices: availableChoices,
+      },
+    ]);
+
+    switch (choice) {
+      case '1':
+        console.log(chalk.cyan('\n📊 Opening detailed provider analysis...'));
+        if (providerList.length > 1) {
+          const { selectedProvider } = await inquirer.prompt([
+            {
+              type: 'list',
+              name: 'selectedProvider',
+              message: 'Select a provider to analyze:',
+              choices: providerList.map(provider => ({
+                name: `${provider} (${analytics.providerComparison[provider].avgQualityScore}/100 quality)`,
+                value: provider,
+              })),
+            },
+          ]);
+          const providerStats = analytics.providerComparison[selectedProvider];
+          console.log(chalk.cyan(`\n📊 Detailed Analysis for ${selectedProvider}:`));
+          console.log(`  Total Interactions: ${providerStats.totalInteractions}`);
+          console.log(`  Avg Quality Score: ${providerStats.avgQualityScore}/100`);
+          console.log(`  Avg Effectiveness: ${providerStats.avgEffectivenessScore}/100`);
+          console.log(`  Hallucination Rate: ${providerStats.hallucinationRate}%`);
+          console.log(`  Dev Time Wasted: ${providerStats.businessImpact.estimatedDevTimeWasted}h`);
+        } else {
+          console.log(chalk.gray('Only one provider available. Run: ') + chalk.yellow('toknxr code-analysis'));
+        }
+        break;
+      case '2':
+        console.log(chalk.magenta('\n🧠 Opening hallucination comparison...'));
+        console.log(chalk.gray('Run: ') + chalk.yellow('toknxr hallucinations'));
+        break;
+      case '3':
+        console.log(chalk.yellow('\n💰 Analyzing cost optimization...'));
+        console.log(chalk.gray('Cost optimization recommendations:'));
+        providerList.forEach(provider => {
+          const stats = analytics.providerComparison[provider];
+          const efficiency = stats.avgQualityScore / (stats.businessImpact.costOfHallucinations || 1);
+          console.log(`  • ${provider}: Quality/Cost ratio = ${efficiency.toFixed(2)}`);
+        });
+        break;
+      case '4':
+        console.log(chalk.green('\n📈 Opening comprehensive analytics...'));
+        console.log(chalk.gray('Run: ') + chalk.yellow('toknxr stats'));
+        break;
+      case 'm':
+        console.log(chalk.gray('\n📋 Opening main menu...'));
+        console.log(chalk.gray('Run: ') + chalk.yellow('toknxr menu'));
+        break;
+      case 'q':
+        console.log(chalk.gray('\n👋 Exiting provider comparison...'));
+        break;
+      default:
+        console.log(chalk.yellow(`Unknown option "${choice}".`));
+    }
   });
 
 program
   .command('export')
   .description('Export analytics data to JSON file')
-  .option('-o, --output <file>', 'Output file path', 'ai-analytics-export.json')
-  .action(options => {
+  .option('-o, --output <file>', 'Output file path')
+  .action(async options => {
     try {
-      aiAnalytics.exportAnalytics(options.output);
-      console.log(chalk.green(`✅ Analytics exported to ${options.output}`));
-    } catch {
-      console.error(chalk.red('❌ Export failed'));
+      let outputPath = options.output;
+
+      if (!outputPath) { // If -o option is not provided, use interactive mode
+        const { locationType } = await inquirer.prompt([
+          {
+            type: 'list',
+            name: 'locationType',
+            message: 'Where would you like to save the export file?',
+            choices: [
+              { name: 'Current Directory', value: 'current' },
+              { name: 'Desktop', value: 'desktop' },
+              { name: 'Custom Path', value: 'custom' },
+            ],
+          },
+        ]);
+
+        let chosenDirectory = process.cwd();
+        if (locationType === 'desktop') {
+          chosenDirectory = path.join(os.homedir(), 'Desktop');
+        } else if (locationType === 'custom') {
+          const { customPath } = await inquirer.prompt([
+            {
+              type: 'input',
+              name: 'customPath',
+              message: 'Enter the custom directory path:',
+              default: process.cwd(),
+            },
+          ]);
+          chosenDirectory = customPath;
+        }
+
+        const { filename } = await inquirer.prompt([
+          {
+            type: 'input',
+            name: 'filename',
+            message: 'Enter the filename for the export:',
+            default: 'ai-analytics-export.json',
+          },
+        ]);
+
+        // Ensure the chosen directory exists
+        if (!fs.existsSync(chosenDirectory)) {
+          fs.mkdirSync(chosenDirectory, { recursive: true });
+          console.log(chalk.green(`Created directory: ${chosenDirectory}`));
+        }
+
+        outputPath = path.join(chosenDirectory, filename);
+      }
+
+      aiAnalytics.exportAnalytics(outputPath);
+      console.log(chalk.green(`✅ Analytics exported to ${outputPath}`));
+    } catch (error) {
+      console.error(chalk.red('❌ Export failed'), error);
     }
   });
 
@@ -1265,21 +1626,100 @@ program
 
     // Interactive navigation
     const pagination = explorer.getPaginationInfo();
-    if (pagination.totalPages > 1) {
-      console.log(chalk.cyan('\nNavigation:'));
-      console.log(
-        chalk.gray('• Use ') +
-          chalk.yellow('toknxr browse --page 2') +
-          chalk.gray(' to go to page 2')
-      );
-      console.log(
-        chalk.gray('• Use ') +
-          chalk.yellow('toknxr browse --size 25') +
-          chalk.gray(' for more items per page')
-      );
-      console.log(
-        chalk.gray('• Use ') + chalk.yellow('toknxr filter') + chalk.gray(' to filter results')
-      );
+    console.log('\n' + chalk.blue.bold('🔍 Interactive Navigation'));
+    console.log(chalk.gray('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'));
+
+    const navigationOptions = [
+      {
+        key: 'n',
+        title: chalk.cyan('📄 Next Page'),
+        description: `Go to page ${currentPage + 1}`,
+        available: currentPage < pagination.totalPages,
+      },
+      {
+        key: 'p',
+        title: chalk.cyan('📄 Previous Page'),
+        description: `Go to page ${currentPage - 1}`,
+        available: currentPage > 1,
+      },
+      {
+        key: 'f',
+        title: chalk.magenta('🔍 Filter Results'),
+        description: 'Apply filters to narrow down interactions',
+        available: true,
+      },
+      {
+        key: 's',
+        title: chalk.yellow('🔍 Search Interactions'),
+        description: 'Search through all interactions',
+        available: true,
+      },
+      {
+        key: 'a',
+        title: chalk.green('📊 View Analytics'),
+        description: 'Go to detailed statistics view',
+        available: true,
+      },
+      {
+        key: 'm',
+        title: chalk.gray('📋 Main Menu'),
+        description: 'Return to main menu',
+        available: true,
+      },
+      {
+        key: 'q',
+        title: chalk.gray('❌ Exit'),
+        description: 'Exit browser',
+        available: true,
+      },
+    ];
+
+    const availableChoices = navigationOptions
+      .filter(option => option.available)
+      .map(option => ({
+        name: `${chalk.bold(option.key)}) ${option.title}\n    ${option.description}`,
+        value: option.key,
+      }));
+
+    const { choice } = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'choice',
+        message: 'What would you like to do?',
+        choices: availableChoices,
+      },
+    ]);
+
+    switch (choice) {
+      case 'n':
+        console.log(chalk.cyan(`\n📄 Going to page ${currentPage + 1}...`));
+        console.log(chalk.gray('Run: ') + chalk.yellow(`toknxr browse --page ${currentPage + 1}`));
+        break;
+      case 'p':
+        console.log(chalk.cyan(`\n📄 Going to page ${currentPage - 1}...`));
+        console.log(chalk.gray('Run: ') + chalk.yellow(`toknxr browse --page ${currentPage - 1}`));
+        break;
+      case 'f':
+        console.log(chalk.magenta('\n🔍 Opening filter interface...'));
+        console.log(chalk.gray('Run: ') + chalk.yellow('toknxr filter'));
+        break;
+      case 's':
+        console.log(chalk.yellow('\n🔍 Opening search interface...'));
+        console.log(chalk.gray('Run: ') + chalk.yellow('toknxr search --query "your terms"'));
+        break;
+      case 'a':
+        console.log(chalk.green('\n📊 Opening analytics view...'));
+        console.log(chalk.gray('Run: ') + chalk.yellow('toknxr stats'));
+        break;
+      case 'm':
+        console.log(chalk.gray('\n📋 Opening main menu...'));
+        console.log(chalk.gray('Run: ') + chalk.yellow('toknxr menu'));
+        break;
+      case 'q':
+        console.log(chalk.gray('\n👋 Exiting browser...'));
+        break;
+      default:
+        console.log(chalk.yellow(`Unknown option "${choice}".`));
     }
   });
 
@@ -1792,10 +2232,10 @@ program
 
       console.log(chalk.bold('\n🗂️  Log File Information:'));
       try {
-        const logPath = path.resolve(process.cwd(), 'audit.log');
-        if (fs.existsSync(logPath)) {
-          const stats = fs.statSync(logPath);
-          console.log(`  Location: ${logPath}`);
+        const auditLogPath = path.resolve(process.cwd(), 'audit.log');
+        if (fs.existsSync(auditLogPath)) {
+          const stats = fs.statSync(auditLogPath);
+          console.log(`  Location: ${auditLogPath}`);
           console.log(`  Size: ${stats.size} bytes (${(stats.size / 1024).toFixed(1)} KB)`);
           console.log(`  Modified: ${stats.mtime.toLocaleString()}`);
           console.log(`  Encrypted: ${auditLogger['config'].encryptionEnabled ? 'Yes' : 'No'}`);
@@ -1858,24 +2298,58 @@ program
   .action(async () => {
     const results: { label: string; ok: boolean; hint?: string }[] = [];
 
-    // Environment checks
-    const geminiKey = process.env.GEMINI_API_KEY;
-    const openaiKey = process.env.OPENAI_API_KEY;
-    const anthropicKey = process.env.ANTHROPIC_API_KEY;
-    
-    results.push({
-      label: 'AI Provider API key',
-      ok: !!(geminiKey || openaiKey || anthropicKey),
-      hint: 'Set GEMINI_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY in your environment',
-    });
-
     // Filesystem checks
     const configPath = path.resolve(process.cwd(), 'toknxr.config.json');
-    results.push({
-      label: `Provider config at ${configPath}`,
-      ok: fs.existsSync(configPath),
-      hint: 'Run: toknxr init',
-    });
+    let providerConfig: ProviderConfig | undefined;
+
+    if (fs.existsSync(configPath)) {
+      results.push({
+        label: `Provider config at ${configPath}`,
+        ok: true,
+      });
+      try {
+        const configFile = fs.readFileSync(configPath, 'utf8');
+        providerConfig = JSON.parse(configFile);
+      } catch (error) {
+        results.push({
+          label: `Parse toknxr.config.json`,
+          ok: false,
+          hint: `Error parsing config file: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        });
+      }
+    } else {
+      results.push({
+        label: `Provider config at ${configPath}`,
+        ok: false,
+        hint: 'Run: toknxr init',
+      });
+    }
+
+    // Environment variable checks for each configured provider
+    if (providerConfig && providerConfig.providers) {
+      for (const provider of providerConfig.providers) {
+        if (provider.apiKeyEnvVar) {
+          const apiKey = process.env[provider.apiKeyEnvVar];
+          results.push({
+            label: `${provider.name} API Key (${provider.apiKeyEnvVar})`,
+            ok: !!apiKey,
+            hint: `Set ${provider.apiKeyEnvVar} in your environment or .env file`,
+          });
+        } else {
+          results.push({
+            label: `${provider.name} API Key`,
+            ok: true,
+            hint: 'No API key required for this provider',
+          });
+        }
+      }
+    } else if (providerConfig) {
+      results.push({
+        label: 'No providers configured in toknxr.config.json',
+        ok: false,
+        hint: 'Edit toknxr.config.json to add AI providers',
+      });
+    }
 
     const logPath = path.resolve(process.cwd(), 'interactions.log');
     try {
@@ -1887,29 +2361,93 @@ program
     }
 
     // Runtime checks (proxy health if running)
-    let healthOk = false;
+    let proxyHealthOk = false;
     try {
       const res = await fetch('http://localhost:8788/health');
-      healthOk = res.ok;
+      proxyHealthOk = res.ok;
     } catch {
-      healthOk = false;
+      proxyHealthOk = false;
     }
     results.push({
-      label: 'Proxy reachable at http://localhost:8788/health',
-      ok: healthOk,
+      label: 'Proxy server running (http://localhost:8788/health)',
+      ok: proxyHealthOk,
       hint: 'Run: toknxr start (then retry doctor)'
     });
 
-    // Optional: add one fixture interaction if none exists and provider key missing
-    try {
-      const file = path.resolve(process.cwd(), 'interactions.log');
-      const hasKey = !!(process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY);
-      const size = fs.existsSync(file) ? fs.statSync(file).size : 0;
-      if (!hasKey && size === 0) {
-        const { appendFixtureInteraction } = await import('./fixtures/canary-interaction.js');
-        appendFixtureInteraction();
+    // AI Provider Connectivity Tests (only if proxy is running and config is loaded)
+    let anyProviderConnected = false;
+    if (proxyHealthOk && providerConfig && providerConfig.providers) {
+      for (const provider of providerConfig.providers) {
+        const apiKey = provider.apiKeyEnvVar ? process.env[provider.apiKeyEnvVar] : undefined;
+        if (provider.apiKeyEnvVar && !apiKey) {
+          results.push({
+            label: `${provider.name} connection test`,
+            ok: false,
+            hint: `Skipped: API key (${provider.apiKeyEnvVar}) not set.`,
+          });
+          continue;
+        }
+
+        const { ok, message } = await testConnection(provider, apiKey);
+        if (ok) {
+          anyProviderConnected = true;
+        }
+        results.push({
+          label: `${provider.name} connection test`,
+          ok: ok,
+          hint: ok ? undefined : message,
+        });
       }
-    } catch {}
+    } else if (proxyHealthOk && !providerConfig) {
+      results.push({
+        label: 'AI Provider connection tests',
+        ok: false,
+        hint: 'Skipped: toknxr.config.json not loaded or invalid.',
+      });
+    } else if (!proxyHealthOk) {
+      results.push({
+        label: 'AI Provider connection tests',
+        ok: false,
+        hint: 'Skipped: Proxy server is not running.',
+      });
+    }
+
+    // Conditional: add one sample interaction if none exists and at least one provider connected
+    const logFileExists = fs.existsSync(logPath);
+    let logFileSize = 0;
+    if (logFileExists) {
+      try {
+        logFileSize = fs.statSync(logPath).size;
+      } catch {}
+    }
+
+    if (anyProviderConnected && logFileSize === 0) {
+      const firstConnectedProvider = providerConfig?.providers.find((p: ProviderConfig['providers'][0]) => {
+        const apiKey = p.apiKeyEnvVar ? process.env[p.apiKeyEnvVar] : undefined;
+        return p.apiKeyEnvVar ? !!apiKey : true; // Check if key is set for providers that need it
+      });
+
+      if (firstConnectedProvider) {
+        const { ok, message } = generateSampleInteraction(firstConnectedProvider.name, logPath);
+        results.push({
+          label: 'Generate sample interaction',
+          ok: ok,
+          hint: ok ? 'Run: toknxr stats or toknxr code-analysis' : message,
+        });
+      }
+    } else if (logFileSize > 0) {
+      results.push({
+        label: 'Generate sample interaction',
+        ok: true,
+        hint: 'interactions.log already contains data.',
+      });
+    } else {
+      results.push({
+        label: 'Generate sample interaction',
+        ok: false,
+        hint: 'No connected providers or interactions.log already has data.',
+      });
+    }
 
     // Print report
     console.log(chalk.blue.bold('\nTokNXR Doctor Report'));
@@ -1924,7 +2462,7 @@ program
 
     console.log(chalk.gray('━'.repeat(60)));
     if (allOk) {
-      console.log(chalk.green('All checks passed. You are ready to use TokNXR.'));
+      console.log(chalk.green('All essential checks passed. You are ready to use TokNXR.'));
     } else {
       console.log(chalk.yellow('Some checks failed. Fix the hints above and re-run: toknxr doctor'));
     }

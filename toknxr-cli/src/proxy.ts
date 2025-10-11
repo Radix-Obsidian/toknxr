@@ -46,7 +46,7 @@ const getValueFromPath = (obj: unknown, path: string): number => {
   }
 };
 
-interface ProviderConfig {
+export interface ProviderConfig {
   providers: Array<{
     name: string;
     routePrefix: string;

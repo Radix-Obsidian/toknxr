@@ -74,3 +74,10 @@ pnpm-lock.yaml
 # Jest
 /coverage/
 jest-coverage/
+
+# TokNXR CLI specific ignores
+toknxr-cli/interactions.log
+.npmrc
+audit.log
+radix-obsidian-toknxr-cli-0.2.2.tgz
+toknxr-cli/ai-analytics-export.json
