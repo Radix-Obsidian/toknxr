@@ -1,5 +1,6 @@
 import chalk from 'chalk';
 import readline from 'readline';
+import inquirer from 'inquirer';
 
 export const createStatsOverview = (
   cost: number,
@@ -63,21 +64,18 @@ export const createOperationProgress = (title: string, steps: string[]) => {
   return spinner;
 };
 
-export const createInteractiveMenu = (
+export const createInteractiveMenu = async (
   options: { name: string; value: string }[]
 ): Promise<string> => {
-  return new Promise(resolve => {
-    console.log(chalk.bold.blue('MENU'));
-    options.forEach(option => console.log(option.name));
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout,
-    });
-    rl.question('Choose an option: ', answer => {
-      rl.close();
-      resolve(answer);
-    });
-  });
+  const { choice } = await inquirer.prompt([
+    {
+      type: 'list',
+      name: 'choice',
+      message: 'Select an operation:',
+      choices: options,
+    },
+  ]);
+  return choice;
 };
 
 export const createBox = (

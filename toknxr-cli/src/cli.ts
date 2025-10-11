@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import 'dotenv/config';
 import { Command } from 'commander';
 import chalk from 'chalk';
@@ -151,41 +152,26 @@ program
         { name: chalk.red('⚙️ Initialize') + chalk.gray(' - Set up configuration'), value: 'init' },
       ]);
 
-      switch (choice) {
-        case 'start':
-          console.log(chalk.blue.bold('\n🚀 Starting TokNXR Proxy Server'));
-          const spinner = createOperationProgress('Initializing', [
-            'Loading configuration',
-            'Setting up providers',
-            'Starting analytics engine',
-            'Ready for requests',
-          ]);
-
-          setTimeout(() => spinner.updateProgress(0), 500);
-          setTimeout(() => spinner.updateProgress(1), 1000);
-          setTimeout(() => spinner.updateProgress(2), 1500);
-          setTimeout(() => {
-            spinner.updateProgress(3);
-            spinner.succeed('Proxy server launched successfully!');
-            startProxyServer();
-          }, 2000);
-          break;
-
-        case 'stats':
-          // This will auto-trigger the stats command
-          break;
-
-        case 'analysis':
-          // This will auto-trigger the code-analysis command
-          break;
-
-        case 'hallucinations':
-          // This will trigger hallucination analytics
-          break;
-
-        case 'init':
-          // This will trigger init command
-          break;
+      try {
+        switch (choice) {
+          case 'start':
+            await program.parseAsync(['node', 'toknxr', 'start']);
+            break;
+          case 'stats':
+            await program.parseAsync(['node', 'toknxr', 'stats']);
+            break;
+          case 'analysis':
+            await program.parseAsync(['node', 'toknxr', 'code-analysis']);
+            break;
+          case 'hallucinations':
+            await program.parseAsync(['node', 'toknxr', 'hallucinations']);
+            break;
+          case 'init':
+            await program.parseAsync(['node', 'toknxr', 'init']);
+            break;
+        }
+      } catch (e) {
+        // This will catch the exit override
       }
     } catch (error) {
       console.error(chalk.red('Menu interaction failed'), error);
@@ -1976,4 +1962,11 @@ function highlightMatch(text: string, query: string): string {
   return highlighted;
 }
 
-program.parse(process.argv);
+program.exitOverride();
+
+try {
+  program.parse(process.argv);
+} catch (e) {
+  // This will catch the exit override and prevent the process from exiting
+}
+

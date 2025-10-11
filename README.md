@@ -49,6 +49,41 @@ cd toknxr-cli && npm install
 npm run start
 ```
 
+### 🎭 A Day with TokNXR: Before and After
+
+**Before TokNXR:**
+
+You're using AI to code, but you're flying blind.
+- **Is this AI-generated code any good?** You have to manually review everything.
+- **How much is this costing me?** You get a surprise bill at the end of the month.
+- **Is there a better AI model for this task?** You're just guessing.
+
+**After TokNXR:**
+
+You run `toknxr start` once in the morning. You code as usual. At the end of the day, you run `toknxr stats`.
+
+```
+📊 TokNXR Analytics Overview
+------------------------------------
+Total Cost: $2.75
+Total Requests: 82
+Estimated Waste: 15%
+Hallucination Rate: 5%
+
+🤖 Provider Performance
+----------------------------------------------------------------
+Provider      | Tokens   | Cost    | Quality | Effectiveness
+----------------------------------------------------------------
+Gemini-Pro    | 45,230   | $2.26   | 87/100  | 92/100
+OpenAI-GPT4   | 12,450   | $0.49   | 75/100  | 85/100
+
+💡 Improvement Recommendations:
+- Your prompts for OpenAI-GPT4 are 15% less effective than for Gemini-Pro.
+- You could have saved $0.41 by using Gemini-Pro for all tasks.
+```
+
+**The Value:** In 5 minutes, you've gained complete visibility into your AI usage. You know exactly what you're spending, which AI models are performing best, and how to improve your prompts to save money and get better results.
+
 ## 🎯 Core Features
 
 ### 📊 **Real-time AI Analytics**
