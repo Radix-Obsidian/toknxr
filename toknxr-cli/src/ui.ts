@@ -206,27 +206,35 @@ export const calcRelevanceScore = <T extends Record<string, any>>(
 ): number => {
   const queryLower = query.toLowerCase();
   let totalScore = 0;
-  let fieldCount = 0;
+  let matchingFields = 0;
   
   fields.forEach(field => {
     const value = interaction[field];
     if (typeof value === 'string') {
-      fieldCount++;
       const valueLower = value.toLowerCase();
       if (valueLower.includes(queryLower)) {
-        // Exact match gets higher score
+        matchingFields++;
+        // Exact match gets highest score
         if (valueLower === queryLower) {
           totalScore += 1.0;
         } else if (valueLower.startsWith(queryLower)) {
           totalScore += 0.8;
+        } else if (valueLower.endsWith(queryLower)) {
+          totalScore += 0.7;
         } else {
-          totalScore += 0.6;
+          // Partial match - score based on how much of the string matches
+          const matchRatio = queryLower.length / valueLower.length;
+          totalScore += 0.3 + (matchRatio * 0.3);
         }
       }
     }
   });
   
-  return fieldCount > 0 ? totalScore / fieldCount : 0;
+  // Boost score for multiple field matches
+  const baseScore = matchingFields > 0 ? totalScore / matchingFields : 0;
+  const multiFieldBonus = matchingFields > 1 ? 0.2 : 0;
+  
+  return Math.min(1.0, baseScore + multiFieldBonus);
 };
 
 export const highlightMatch = (text: string, query: string): string => {

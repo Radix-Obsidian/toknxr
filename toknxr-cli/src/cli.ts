@@ -1917,10 +1917,21 @@ program
 
         let highlightColor: 'green' | 'yellow' | 'red';
         if (score >= 0.8) highlightColor = 'green';
-        else if (score >= 0.6) highlightColor = 'yellow';
+        else if (score >= 0.5) highlightColor = 'yellow';
         else highlightColor = 'red';
 
+        // Show which fields matched
+        const matchedFields: string[] = [];
+        searchOptions.fields.forEach(field => {
+          const value = interaction[field as keyof Interaction];
+          if (typeof value === 'string' && value.toLowerCase().includes(searchOptions.query.toLowerCase())) {
+            matchedFields.push(field);
+          }
+        });
+
         const highlightedPrompt = highlightMatch(interaction.userPrompt || '', searchOptions.query);
+        const highlightedModel = highlightMatch(interaction.model || '', searchOptions.query);
+        const highlightedProvider = highlightMatch(interaction.provider || '', searchOptions.query);
 
         const colorFn =
           highlightColor === 'green'
@@ -1928,12 +1939,17 @@ program
             : highlightColor === 'yellow'
               ? chalk.yellow
               : chalk.red;
+        
+        const starCount = Math.max(1, Math.ceil(score * 5));
+        const stars = colorFn('★'.repeat(starCount) + '☆'.repeat(5 - starCount));
+        
         return createBox(
-          `#${num} ${interaction.provider} (${colorFn('★'.repeat(Math.ceil(score * 5)))})`,
+          `#${num} ${highlightedProvider} • ${highlightedModel} (${stars})`,
           [
             `📅 ${chalk.gray(new Date(interaction.timestamp || Date.now()).toLocaleDateString())}`,
             `🎯 ${highlightedPrompt || 'No prompt available'}`,
-            `💰 $${interaction.costUSD?.toFixed(4) || '0.0000'} • ⭐ ${interaction.codeQualityScore || 'N/A'}/100`,
+            `💰 ${interaction.costUSD?.toFixed(4) || '0.0000'} • ⭐ ${interaction.codeQualityScore || 'N/A'}/100`,
+            `🔍 Matched: ${chalk.cyan(matchedFields.join(', '))}`,
           ],
           {
             borderColor: highlightColor,
