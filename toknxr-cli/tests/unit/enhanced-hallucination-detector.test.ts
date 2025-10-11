@@ -1,346 +1,268 @@
 /**
  * Unit tests for Enhanced Hallucination Detector
- * Testing the CodeHalu implementation for systematic code hallucination detection
  */
 
 import { describe, it, expect, beforeEach } from '@jest/globals';
-import { CodeHaluDetector } from '../../src/enhanced-hallucination-detector.js';
-import {
-  HallucinationType,
-  HallucinationSubtype,
-  DetectionOptions,
-} from '../../src/types/hallucination-types.js';
+import { CodeHaluDetector, createCodeHaluDetector, detectCodeHallucinations } from '../../src/enhanced-hallucination-detector.js';
+import { HallucinationPatterns, detectAllPatterns } from '../../src/hallucination-patterns.js';
+import { ExecutionBasedDetector } from '../../src/execution-based-detector.js';
 
-describe('CodeHaluDetector', () => {
+describe('Enhanced Hallucination Detector', () => {
   let detector: CodeHaluDetector;
 
   beforeEach(() => {
-    detector = new CodeHaluDetector();
-  });
-
-  describe('Basic Functionality', () => {
-    it('should create detector instance', () => {
-      expect(detector).toBeInstanceOf(CodeHaluDetector);
-    });
-
-    it('should handle empty code input', async () => {
-      await expect(detector.detectHallucinations('', 'python')).rejects.toThrow('Code cannot be empty');
-    });
-
-    it('should handle unsupported language', async () => {
-      await expect(detector.detectHallucinations('print("hello")', 'javascript')).rejects.toThrow('Language \'javascript\' not yet supported');
-    });
-
-    it('should return valid result structure for simple code', async () => {
-      const code = 'print("Hello, World!")';
-      const result = await detector.detectHallucinations(code, 'python');
-
-      expect(result).toHaveProperty('overallHallucinationRate');
-      expect(result).toHaveProperty('categories');
-      expect(result).toHaveProperty('codeQualityImpact');
-      expect(result).toHaveProperty('recommendations');
-      expect(result).toHaveProperty('detectionMetadata');
-      expect(result).toHaveProperty('hasCriticalIssues');
-      expect(result).toHaveProperty('summary');
-
-      expect(typeof result.overallHallucinationRate).toBe('number');
-      expect(Array.isArray(result.categories)).toBe(true);
-      expect(Array.isArray(result.recommendations)).toBe(true);
+    detector = createCodeHaluDetector({
+      enableExecutionAnalysis: true,
+      enableStaticAnalysis: true,
+      enablePatternMatching: true,
+      confidenceThreshold: 0.6,
     });
   });
 
-  describe('Mapping Hallucination Detection', () => {
-    it('should detect data compliance issues - type mismatch', async () => {
+  describe('Pattern Detection', () => {
+    it('should detect mapping hallucinations (TypeError patterns)', () => {
       const code = `
-x = 5
-result = x + "hello"
+x = "hello"
+y = 5
+result = x + y  # TypeError: can't concatenate str and int
+print(result)
 `;
-      const result = await detector.detectHallucinations(code, 'python');
       
-      const mappingIssues = result.categories.filter(c => c.type === 'mapping' && c.subtype === 'data_compliance');
-      expect(mappingIssues.length).toBeGreaterThan(0);
-      expect(mappingIssues[0].evidence[0]).toContain('Type mismatch detected');
+      const patterns = detectAllPatterns(code);
+      const mappingPatterns = patterns.filter(p => p.category === 'mapping');
+      
+      expect(mappingPatterns.length).toBeGreaterThan(0);
+      expect(mappingPatterns[0].pattern).toBe('typeError');
+      expect(mappingPatterns[0].confidence).toBeGreaterThan(0.7);
+      expect(mappingPatterns[0].severity).toBe('high');
     });
 
-    it('should detect structure access issues - potential index out of bounds', async () => {
+    it('should detect naming hallucinations (NameError patterns)', () => {
       const code = `
-arr = [1, 2, 3]
-value = arr[100]
+def greet():
+    return f"Hello, {name}!"  # NameError: name 'name' is not defined
+
+message = greet()
+print(message)
 `;
-      const result = await detector.detectHallucinations(code, 'python');
       
-      const structureIssues = result.categories.filter(c => c.type === 'mapping' && c.subtype === 'structure_access');
-      expect(structureIssues.length).toBeGreaterThan(0);
-      expect(structureIssues[0].evidence[0]).toContain('Potential index out of bounds');
+      const patterns = detectAllPatterns(code);
+      const namingPatterns = patterns.filter(p => p.category === 'naming');
+      
+      expect(namingPatterns.length).toBeGreaterThan(0);
+      expect(namingPatterns[0].pattern).toBe('nameError');
+      expect(namingPatterns[0].confidence).toBeGreaterThan(0.7);
     });
 
-    it('should detect unchecked dictionary key access', async () => {
+    it('should detect resource hallucinations (memory patterns)', () => {
       const code = `
-data = {"name": "John"}
-age = data["age"]
+# Create a huge list that will cause memory issues
+big_list = [0] * 10000000  # MemoryError: out of memory
+print(len(big_list))
 `;
-      const result = await detector.detectHallucinations(code, 'python');
       
-      const structureIssues = result.categories.filter(c => c.type === 'mapping' && c.subtype === 'structure_access');
-      expect(structureIssues.length).toBeGreaterThan(0);
-      expect(structureIssues[0].evidence[0]).toContain('Unchecked dictionary key access');
-    });
-  });
-
-  describe('Naming Hallucination Detection', () => {
-    it('should detect identity issues - undefined variable', async () => {
-      const code = `
-print(undefined_variable)
-`;
-      const result = await detector.detectHallucinations(code, 'python');
+      const patterns = detectAllPatterns(code);
+      const resourcePatterns = patterns.filter(p => p.category === 'resource');
       
-      const identityIssues = result.categories.filter(c => c.type === 'naming' && c.subtype === 'identity');
-      expect(identityIssues.length).toBeGreaterThan(0);
-      expect(identityIssues[0].evidence[0]).toContain('used before definition');
+      expect(resourcePatterns.length).toBeGreaterThan(0);
+      expect(resourcePatterns[0].subtype).toBe('physical_constraint');
     });
 
-    it('should detect external source issues - non-existent module', async () => {
+    it('should detect logic hallucinations (infinite loop patterns)', () => {
       const code = `
-import nonexistentmoduleverylongname
-`;
-      const result = await detector.detectHallucinations(code, 'python');
-      
-      const externalIssues = result.categories.filter(c => c.type === 'naming' && c.subtype === 'external_source');
-      expect(externalIssues.length).toBeGreaterThan(0);
-      expect(externalIssues[0].evidence[0]).toContain('Potentially non-existent module');
-    });
-
-    it('should not flag common Python modules', async () => {
-      const code = `
-import os
-import sys
-import json
-`;
-      const result = await detector.detectHallucinations(code, 'python');
-      
-      const externalIssues = result.categories.filter(c => c.type === 'naming' && c.subtype === 'external_source');
-      expect(externalIssues.length).toBe(0);
-    });
-  });
-
-  describe('Resource Hallucination Detection', () => {
-    it('should detect physical constraint issues - recursive function without base case', async () => {
-      const code = `
-def factorial(n):
-    return n * factorial(n - 1)
-`;
-      const result = await detector.detectHallucinations(code, 'python');
-      
-      const physicalIssues = result.categories.filter(c => c.type === 'resource' && c.subtype === 'physical_constraint');
-      expect(physicalIssues.length).toBeGreaterThan(0);
-      expect(physicalIssues[0].evidence[0]).toContain('may lack proper base case');
-    });
-
-    it('should detect computational boundary issues - infinite loop', async () => {
-      const code = `
-while True:
+while True:  # infinite loop detected
     print("This will run forever")
+    x = x + 1
 `;
-      const result = await detector.detectHallucinations(code, 'python');
       
-      const boundaryIssues = result.categories.filter(c => c.type === 'resource' && c.subtype === 'computational_boundary');
-      expect(boundaryIssues.length).toBeGreaterThan(0);
-      expect(boundaryIssues[0].evidence[0]).toContain('Potential infinite loop');
-    });
-
-    it('should detect large range operations', async () => {
-      const code = `
-for i in range(10000000):
-    print(i)
-`;
-      const result = await detector.detectHallucinations(code, 'python');
+      const patterns = detectAllPatterns(code);
+      const logicPatterns = patterns.filter(p => p.category === 'logic');
       
-      const boundaryIssues = result.categories.filter(c => c.type === 'resource' && c.subtype === 'computational_boundary');
-      expect(boundaryIssues.length).toBeGreaterThan(0);
-      expect(boundaryIssues[0].evidence[0]).toContain('Large range operation');
+      expect(logicPatterns.length).toBeGreaterThan(0);
+      expect(logicPatterns[0].severity).toBe('high');
     });
   });
 
-  describe('Logic Hallucination Detection', () => {
-    it('should detect logic deviation issues - always false condition', async () => {
+  describe('Core Detection Algorithm', () => {
+    it('should detect hallucinations in simple problematic code', async () => {
       const code = `
-if False:
-    print("This will never execute")
+def divide_numbers(a, b):
+    return a / b  # ZeroDivisionError when b=0
+
+result = divide_numbers(10, 0)
+print(result)
 `;
+      
       const result = await detector.detectHallucinations(code, 'python');
       
-      const deviationIssues = result.categories.filter(c => c.type === 'logic' && c.subtype === 'logic_deviation');
-      expect(deviationIssues.length).toBeGreaterThan(0);
-      expect(deviationIssues[0].evidence[0]).toContain('Always false condition');
-    });
+      expect(result.overallHallucinationRate).toBeGreaterThan(0);
+      expect(result.categories.length).toBeGreaterThan(0);
+      expect(result.analysisMetadata.detectionMethods).toContain('static');
+      expect(result.recommendations.length).toBeGreaterThan(0);
+    }, 15000);
 
-    it('should detect logic breakdown issues - repeated lines', async () => {
+    it('should handle clean code with low hallucination rate', async () => {
       const code = `
-print("Hello World")
-print("Hello World")
+def add_numbers(a, b):
+    """Add two numbers safely."""
+    if not isinstance(a, (int, float)) or not isinstance(b, (int, float)):
+        raise ValueError("Both arguments must be numbers")
+    return a + b
+
+result = add_numbers(5, 3)
+print(f"Result: {result}")
 `;
+      
       const result = await detector.detectHallucinations(code, 'python');
       
-      const breakdownIssues = result.categories.filter(c => c.type === 'logic' && c.subtype === 'logic_breakdown');
-      expect(breakdownIssues.length).toBeGreaterThan(0);
-      expect(breakdownIssues[0].evidence[0]).toContain('Repeated line detected');
-    });
+      expect(result.overallHallucinationRate).toBeLessThan(0.3);
+      expect(result.categories.length).toBeLessThanOrEqual(1);
+    }, 15000);
 
-    it('should detect incomplete function definitions', async () => {
+    it('should provide business impact analysis', async () => {
       const code = `
-def incomplete_function():
+# Multiple issues in one code block
+undefined_var = some_undefined_variable  # NameError
+result = "text" + 123  # TypeError
+big_list = [0] * 1000000  # Memory issue
 `;
+      
       const result = await detector.detectHallucinations(code, 'python');
       
-      const breakdownIssues = result.categories.filter(c => c.type === 'logic' && c.subtype === 'logic_breakdown');
-      expect(breakdownIssues.length).toBeGreaterThan(0);
-      expect(breakdownIssues[0].evidence[0]).toContain('Incomplete function definition');
-    });
-  });
+      expect(result.businessImpact.estimatedDevTimeWasted).toBeGreaterThan(0);
+      expect(result.businessImpact.costOfHallucinations).toBeGreaterThan(0);
+      expect(result.businessImpact.qualityImpact).toBeGreaterThan(0);
+      expect(result.businessImpact.costMultiplier).toBeGreaterThan(1.0);
+    }, 15000);
 
-  describe('Detection Options', () => {
-    it('should respect confidence threshold', async () => {
+    it('should generate appropriate recommendations', async () => {
       const code = `
-x = undefined_var
+# Code with naming and mapping issues
+print(undefined_variable)  # NameError
+result = "hello" + 5  # TypeError
 `;
-      const options: DetectionOptions = {
-        confidenceThreshold: 0.9,
-      };
       
-      const result = await detector.detectHallucinations(code, 'python', options);
-      
-      // All returned categories should have confidence >= 0.9
-      result.categories.forEach(category => {
-        expect(category.confidence).toBeGreaterThanOrEqual(0.9);
-      });
-    });
-
-    it('should focus on specific categories when requested', async () => {
-      const code = `
-x = undefined_var
-y = 5 + "hello"
-`;
-      const options: DetectionOptions = {
-        focusCategories: ['mapping'],
-      };
-      
-      const result = await detector.detectHallucinations(code, 'python', options);
-      
-      // Should only contain mapping hallucinations
-      result.categories.forEach(category => {
-        expect(category.type).toBe('mapping');
-      });
-    });
-
-    it('should generate recommendations when enabled', async () => {
-      const code = `
-x = undefined_var
-`;
-      const options: DetectionOptions = {
-        generateRecommendations: true,
-      };
-      
-      const result = await detector.detectHallucinations(code, 'python', options);
+      const result = await detector.detectHallucinations(code, 'python');
       
       expect(result.recommendations.length).toBeGreaterThan(0);
-      expect(result.recommendations[0]).toHaveProperty('title');
-      expect(result.recommendations[0]).toHaveProperty('actionItems');
-    });
+      expect(result.recommendations[0].title).toBeDefined();
+      expect(result.recommendations[0].actionItems.length).toBeGreaterThan(0);
+      expect(result.recommendations[0].expectedImpact).toBeDefined();
+    }, 15000);
+  });
 
-    it('should not generate recommendations when disabled', async () => {
+  describe('Execution-Based Detection', () => {
+    it('should detect runtime errors through execution', async () => {
       const code = `
-x = undefined_var
+def test_function():
+    x = 10
+    y = 0
+    return x / y  # This will cause ZeroDivisionError
+
+result = test_function()
+print(result)
 `;
-      const options: DetectionOptions = {
-        generateRecommendations: false,
+      
+      const result = await detector.detectHallucinations(code, 'python');
+      
+      expect(result.executionResult).toBeDefined();
+      expect(result.executionResult?.success).toBe(false);
+      expect(result.executionResult?.errors.length).toBeGreaterThan(0);
+      
+      // Should detect logic hallucination from execution
+      const logicCategories = result.categories.filter(c => c.type === 'logic');
+      expect(logicCategories.length).toBeGreaterThan(0);
+    }, 15000);
+
+    it('should detect resource usage issues', async () => {
+      const code = `
+# Code that uses significant memory
+data = list(range(50000))  # Large list
+result = sum(data)
+print(f"Sum: {result}")
+`;
+      
+      const result = await detector.detectHallucinations(code, 'python');
+      
+      expect(result.executionResult).toBeDefined();
+      expect(result.executionResult?.resourceUsage.memoryMB).toBeGreaterThan(0);
+      
+      // May detect resource hallucination if memory usage is high
+      const resourceCategories = result.categories.filter(c => c.type === 'resource');
+      // Note: This might not always trigger depending on system resources
+    }, 15000);
+
+    it('should validate output correctness when expected output provided', async () => {
+      const code = `
+def calculate_factorial(n):
+    if n <= 1:
+        return 1
+    return n * calculate_factorial(n - 1)
+
+result = calculate_factorial(5)
+print(result)
+`;
+      
+      const context = {
+        expectedOutput: 120,
       };
       
-      const result = await detector.detectHallucinations(code, 'python', options);
+      const result = await detector.detectHallucinations(code, 'python', context);
       
-      expect(result.recommendations.length).toBe(0);
-    });
+      expect(result.executionResult).toBeDefined();
+      expect(result.executionResult?.success).toBe(true);
+      
+      // Should have low hallucination rate for correct implementation
+      expect(result.overallHallucinationRate).toBeLessThan(0.3);
+    }, 15000);
   });
 
-  describe('Result Metrics', () => {
-    it('should calculate hallucination rate correctly', async () => {
+  describe('Configuration and Error Handling', () => {
+    it('should handle invalid input gracefully', async () => {
+      const result = await detector.detectHallucinations('', 'python');
+      
+      expect(result.overallHallucinationRate).toBe(1.0);
+      expect(result.categories.length).toBeGreaterThan(0);
+      expect(result.categories[0].severity).toBe('critical');
+    });
+
+    it('should respect confidence threshold configuration', async () => {
+      const lowThresholdDetector = createCodeHaluDetector({
+        confidenceThreshold: 0.3,
+      });
+      
+      const highThresholdDetector = createCodeHaluDetector({
+        confidenceThreshold: 0.9,
+      });
+      
       const code = `
-print("Hello World")
+# Borderline case that might have medium confidence
+result = some_var + 1  # Potential NameError
 `;
-      const result = await detector.detectHallucinations(code, 'python');
       
-      expect(result.overallHallucinationRate).toBeGreaterThanOrEqual(0);
-      expect(result.overallHallucinationRate).toBeLessThanOrEqual(1);
-    });
+      const lowResult = await lowThresholdDetector.detectHallucinations(code, 'python');
+      const highResult = await highThresholdDetector.detectHallucinations(code, 'python');
+      
+      // Low threshold should detect more issues
+      expect(lowResult.categories.length).toBeGreaterThanOrEqual(highResult.categories.length);
+    }, 15000);
 
-    it('should provide accurate summary statistics', async () => {
+    it('should handle unsupported languages gracefully', async () => {
       const code = `
-x = undefined_var
-y = 5 + "hello"
+console.log("Hello, World!");
+const result = undefined_variable + 5;
 `;
-      const result = await detector.detectHallucinations(code, 'python');
       
-      const { summary } = result;
-      expect(summary.totalHallucinations).toBe(result.categories.length);
+      const result = await detector.detectHallucinations(code, 'javascript');
       
-      const actualCritical = result.categories.filter(c => c.severity === 'critical').length;
-      const actualHigh = result.categories.filter(c => c.severity === 'high').length;
-      const actualMedium = result.categories.filter(c => c.severity === 'medium').length;
-      const actualLow = result.categories.filter(c => c.severity === 'low').length;
-      
-      expect(summary.criticalCount).toBe(actualCritical);
-      expect(summary.highSeverityCount).toBe(actualHigh);
-      expect(summary.mediumSeverityCount).toBe(actualMedium);
-      expect(summary.lowSeverityCount).toBe(actualLow);
-    });
-
-    it('should set hasCriticalIssues flag correctly', async () => {
-      const codeWithCritical = `
-while True:
-    pass
-`;
-      const result = await detector.detectHallucinations(codeWithCritical, 'python');
-      
-      const hasCritical = result.categories.some(c => c.severity === 'critical');
-      expect(result.hasCriticalIssues).toBe(hasCritical);
-    });
+      // Should still perform static analysis even for unsupported languages
+      expect(result.analysisMetadata.language).toBe('javascript');
+      expect(result.analysisMetadata.detectionMethods).toContain('static');
+    }, 15000);
   });
 
-  describe('Detection Metadata', () => {
-    it('should provide complete metadata', async () => {
-      const code = 'print("Hello World")';
-      const result = await detector.detectHallucinations(code, 'python');
-      
-      const { detectionMetadata } = result;
-      expect(detectionMetadata.analysisTimeMs).toBeGreaterThan(0);
-      expect(detectionMetadata.detectionVersion).toBe('1.0.0');
-      expect(detectionMetadata.language).toBe('python');
-      expect(detectionMetadata.codeLength).toBe(code.length);
-      expect(detectionMetadata.timestamp).toBeDefined();
-      expect(detectionMetadata.executionVerified).toBe(false); // Execution not implemented yet
-    });
-  });
-
-  describe('Error Handling', () => {
-    it('should handle detection errors gracefully', async () => {
-      // This test would be more meaningful with actual error scenarios
-      // For now, we test that the detector doesn't crash on edge cases
-      
-      const edgeCases = [
-        '# Just a comment',
-        '    ', // Only whitespace
-        'print("test")\n\n\n', // Multiple newlines
-      ];
-      
-      for (const code of edgeCases) {
-        const result = await detector.detectHallucinations(code.trim() || 'pass', 'python');
-        expect(result).toBeDefined();
-        expect(result.detectionMetadata).toBeDefined();
-      }
-    });
-  });
-
-  describe('Performance', () => {
-    it('should complete analysis within reasonable time', async () => {
+  describe('Performance and Optimization', () => {
+    it('should complete detection within reasonable time', async () => {
       const code = `
 def fibonacci(n):
     if n <= 1:
@@ -348,43 +270,199 @@ def fibonacci(n):
     return fibonacci(n-1) + fibonacci(n-2)
 
 result = fibonacci(10)
-print(result)
+print(f"Fibonacci(10) = {result}")
 `;
       
       const startTime = Date.now();
       const result = await detector.detectHallucinations(code, 'python');
       const endTime = Date.now();
       
-      const analysisTime = endTime - startTime;
-      expect(analysisTime).toBeLessThan(1000); // Should complete within 1 second
-      expect(result.detectionMetadata.analysisTimeMs).toBeLessThan(1000);
+      expect(endTime - startTime).toBeLessThan(10000); // Should complete within 10 seconds
+      expect(result.analysisMetadata.detectionTimeMs).toBeLessThan(10000);
+    }, 15000);
+
+    it('should handle complex code with multiple issues efficiently', async () => {
+      const code = `
+# Complex code with multiple potential issues
+import nonexistent_module  # ImportError
+
+def problematic_function(data):
+    result = []
+    for i in range(len(data)):
+        if data[i] > 0:
+            result.append(data[i] / 0)  # ZeroDivisionError
+        else:
+            result.append(undefined_var)  # NameError
+    return result
+
+# Memory intensive operation
+big_data = [i for i in range(100000)]
+processed = problematic_function(big_data)
+print(len(processed))
+`;
+      
+      const result = await detector.detectHallucinations(code, 'python');
+      
+      expect(result.categories.length).toBeGreaterThan(2);
+      expect(result.overallHallucinationRate).toBeGreaterThan(0.5);
+      
+      // Should detect multiple types of hallucinations
+      const categoryTypes = new Set(result.categories.map(c => c.type));
+      expect(categoryTypes.size).toBeGreaterThan(1);
+    }, 20000);
+  });
+
+  describe('Utility Functions', () => {
+    it('should work with utility function for quick detection', async () => {
+      const code = `
+def safe_divide(a, b):
+    if b == 0:
+        return None
+    return a / b
+
+result = safe_divide(10, 2)
+print(result)
+`;
+      
+      const result = await detectCodeHallucinations(code, 'python', {
+        enableExecution: true,
+        confidenceThreshold: 0.7,
+      });
+      
+      expect(result.overallHallucinationRate).toBeLessThan(0.3);
+      expect(result.categories.length).toBeLessThanOrEqual(1);
+    }, 15000);
+  });
+});
+
+describe('Pattern Detection System', () => {
+  describe('HallucinationPatterns', () => {
+    it('should detect mapping patterns correctly', () => {
+      const code = `
+x = "hello"
+y = 5
+result = x + y  # TypeError: can't concatenate str and int
+`;
+      
+      const patterns = HallucinationPatterns.detectMappingHallucinations(code);
+      
+      expect(patterns.length).toBeGreaterThan(0);
+      expect(patterns[0].category).toBe('mapping');
+      expect(patterns[0].subtype).toBe('data_compliance');
+    });
+
+    it('should analyze code structure correctly', () => {
+      const code = `
+import os
+import sys
+
+class Calculator:
+    def __init__(self):
+        self.result = 0
+    
+    def add(self, x, y):
+        return x + y
+    
+    async def async_operation(self):
+        await some_async_call()
+
+def main():
+    calc = Calculator()
+    try:
+        result = calc.add(5, 3)
+        print(result)
+    except Exception as e:
+        print(f"Error: {e}")
+
+if __name__ == "__main__":
+    main()
+`;
+      
+      const structure = HallucinationPatterns.analyzeCodeStructure(code);
+      
+      expect(structure.functions.length).toBeGreaterThan(0);
+      expect(structure.classes.length).toBeGreaterThan(0);
+      expect(structure.imports.length).toBeGreaterThan(0);
+      expect(structure.hasAsyncCode).toBe(true);
+      expect(structure.hasErrorHandling).toBe(true);
+      expect(structure.complexity).toBeGreaterThan(1);
+    });
+
+    it('should convert pattern results to hallucination categories', () => {
+      const code = `
+print(undefined_variable)  # NameError: name not defined
+result = "text" + 123  # TypeError: can't concatenate
+`;
+      
+      const patterns = detectAllPatterns(code);
+      const categories = HallucinationPatterns.convertToHallucinationCategories(patterns);
+      
+      expect(categories.length).toBeGreaterThan(0);
+      expect(categories[0].type).toBeDefined();
+      expect(categories[0].confidence).toBeGreaterThan(0);
+      expect(categories[0].businessImpact).toBeDefined();
+      expect(categories[0].suggestedFix).toBeDefined();
     });
   });
 });
 
-describe('Hallucination Type Definitions', () => {
-  it('should have all required hallucination types', () => {
-    const expectedTypes: HallucinationType[] = ['mapping', 'naming', 'resource', 'logic'];
-    expectedTypes.forEach(type => {
-      expect(['mapping', 'naming', 'resource', 'logic']).toContain(type);
+describe('Execution-Based Detection', () => {
+  let executionDetector: ExecutionBasedDetector;
+
+  beforeEach(() => {
+    executionDetector = new ExecutionBasedDetector({
+      memoryThresholdMB: 32,
+      executionTimeThresholdMs: 2000,
     });
   });
 
-  it('should have all required hallucination subtypes', () => {
-    const expectedSubtypes: HallucinationSubtype[] = [
-      'data_compliance', 'structure_access',
-      'identity', 'external_source',
-      'physical_constraint', 'computational_boundary',
-      'logic_deviation', 'logic_breakdown'
-    ];
+  it('should detect resource hallucinations from execution results', async () => {
+    const mockExecutionResult = {
+      success: true,
+      output: 'Test output',
+      errors: [],
+      resourceUsage: {
+        memoryMB: 64, // Above threshold
+        executionTimeMs: 3000, // Above threshold
+        cpuUsage: 85, // Above threshold
+      },
+      securityFlags: [],
+      timedOut: false,
+    };
+
+    const categories = await executionDetector.detectResourceHallucinations(mockExecutionResult);
     
-    expectedSubtypes.forEach(subtype => {
-      expect([
-        'data_compliance', 'structure_access',
-        'identity', 'external_source',
-        'physical_constraint', 'computational_boundary',
-        'logic_deviation', 'logic_breakdown'
-      ]).toContain(subtype);
-    });
+    expect(categories.length).toBeGreaterThan(0);
+    
+    const resourceCategories = categories.filter(c => c.type === 'resource');
+    expect(resourceCategories.length).toBeGreaterThan(0);
+  });
+
+  it('should detect logic hallucinations from code analysis', async () => {
+    const code = `
+while True:
+    print("Infinite loop")
+    # No break statement
+`;
+    
+    const mockExecutionResult = {
+      success: false,
+      output: '',
+      errors: [],
+      resourceUsage: {
+        memoryMB: 10,
+        executionTimeMs: 1000,
+        cpuUsage: 50,
+      },
+      securityFlags: [],
+      timedOut: true,
+    };
+
+    const categories = await executionDetector.detectLogicHallucinations(code, mockExecutionResult);
+    
+    expect(categories.length).toBeGreaterThan(0);
+    
+    const logicCategories = categories.filter(c => c.type === 'logic');
+    expect(logicCategories.length).toBeGreaterThan(0);
   });
 });

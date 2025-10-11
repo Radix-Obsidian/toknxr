@@ -6,6 +6,9 @@
 // Enhanced Hallucination Detection Types
 export * from './hallucination-types.js';
 
+// Database Types for Hallucination Analysis
+export * from './database-types.js';
+
 // Re-export existing types for backward compatibility
 export interface Interaction {
   provider: string;
