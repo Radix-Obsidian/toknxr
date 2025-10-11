@@ -230,11 +230,19 @@ export const calcRelevanceScore = <T extends Record<string, any>>(
     }
   });
   
-  // Boost score for multiple field matches
-  const baseScore = matchingFields > 0 ? totalScore / matchingFields : 0;
+  // Calculate final score
+  if (matchingFields === 0) return 0;
+  
+  const baseScore = totalScore / matchingFields;
   const multiFieldBonus = matchingFields > 1 ? 0.2 : 0;
   
-  return Math.min(1.0, baseScore + multiFieldBonus);
+  // Ensure exact matches get high scores
+  const finalScore = Math.min(1.0, baseScore + multiFieldBonus);
+  
+  // Debug: log the score calculation for troubleshooting
+  // console.log(`Debug: query="${query}", baseScore=${baseScore}, finalScore=${finalScore}`);
+  
+  return finalScore;
 };
 
 export const highlightMatch = (text: string, query: string): string => {
