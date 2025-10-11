@@ -134,7 +134,7 @@ function generateWeeklyCostTrends(interactions: Interaction[]): number[] {
   return dailyCosts;
 }
 
-program.name('toknxr').description('AI Effectiveness & Code Quality Analysis CLI').version('0.1.0');
+program.name('toknxr').description('AI Effectiveness & Code Quality Analysis CLI').version('0.3.0');
 
 program
   .command('menu')
