@@ -23,12 +23,19 @@ import {
   ERROR_CATEGORY_MAP,
 } from './types/hallucination-types.js';
 
+import { HallucinationPatterns } from './hallucination-patterns.js';
+
 /**
  * Main CodeHalu detection engine following the research methodology
  */
 export class CodeHaluDetector {
   private detectionVersion = '1.0.0';
   private startTime: number = 0;
+  private patternMatcher: HallucinationPatterns;
+
+  constructor() {
+    this.patternMatcher = new HallucinationPatterns();
+  }
 
   /**
    * Primary detection method following CodeHalu algorithm
@@ -102,7 +109,17 @@ export class CodeHaluDetector {
   ): Promise<HallucinationCategory[]> {
     const categories: HallucinationCategory[] = [];
     
-    // Analyze each category if included in focus
+    // Use enhanced pattern detection
+    const patternResult = this.patternMatcher.detectPatterns(code);
+    
+    // Filter by focus categories if specified
+    const filteredCategories = options.focusCategories 
+      ? patternResult.categories.filter(cat => options.focusCategories!.includes(cat.type))
+      : patternResult.categories;
+    
+    categories.push(...filteredCategories);
+    
+    // Also run legacy detection methods for additional coverage
     if (options.focusCategories?.includes('mapping')) {
       categories.push(...await this.detectMappingHallucinations(code));
     }
@@ -119,7 +136,8 @@ export class CodeHaluDetector {
       categories.push(...await this.detectLogicHallucinations(code));
     }
     
-    return categories;
+    // Remove duplicates based on evidence and line numbers
+    return this.deduplicateCategories(categories);
   }
 
   /**
@@ -854,7 +872,27 @@ export class CodeHaluDetector {
     return 'low';
   }
 
-  // Utility helper methods
+  /**
+   * Remove duplicate categories based on evidence and line numbers
+   */
+  private deduplicateCategories(categories: HallucinationCategory[]): HallucinationCategory[] {
+    const seen = new Set<string>();
+    const deduplicated: HallucinationCategory[] = [];
+    
+    for (const category of categories) {
+      const key = `${category.type}-${category.subtype}-${category.lineNumbers?.[0] || 0}-${category.evidence[0] || ''}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        deduplicated.push(category);
+      }
+    }
+    
+    return deduplicated;
+  }
+
+  /**
+   * Utility helper methods
+   */
   private getLineNumber(code: string, index: number): number {
     return code.substring(0, index).split('\n').length;
   }
